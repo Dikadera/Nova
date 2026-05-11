@@ -78,6 +78,7 @@ export const AdminView = () => {
                    <thead>
                       <tr>
                          <th>CUSTOMER IDENTITY</th>
+                         <th>EMAIL ADDRESS</th>
                          <th>ACCOUNT STATUS</th>
                          <th>LEDGER BALANCE</th>
                          <th>ACTIONS</th>
@@ -175,24 +176,46 @@ export const AdminView = () => {
         <div class="glass-panel" style="padding: 2.5rem; width: 90%; max-width: 500px; border: 1px solid rgba(255,255,255,0.1);">
           <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: var(--primary);">Onboard New Customer</h3>
           <form id="createUserForm">
-            <div class="form-group">
-              <label class="form-label">Full Name</label>
-              <input type="text" id="createFullName" class="form-control" required placeholder="John Doe">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Email Address</label>
-              <input type="email" id="createEmail" class="form-control" required placeholder="customer@nova.bank">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Temporary Password</label>
-              <input type="password" id="createPassword" class="form-control" required placeholder="Min 6 characters">
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+               <div class="form-group">
+                  <label class="form-label">Full Legal Name</label>
+                  <input type="text" id="createFullName" class="form-control" required placeholder="John Doe">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Email Address</label>
+                  <input type="email" id="createEmail" class="form-control" required placeholder="john@example.com">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Temporary Password</label>
+                  <input type="password" id="createPassword" class="form-control" required placeholder="********">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Date of Birth</label>
+                  <input type="date" id="createDob" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">SSN / Tax ID</label>
+                  <input type="text" id="createSsn" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Home Address</label>
+                  <input type="text" id="createAddress" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">City</label>
+                  <input type="text" id="createCity" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Country</label>
+                  <input type="text" id="createCountry" class="form-control">
+               </div>
                <div class="form-group">
                   <label class="form-label">Account Type</label>
                   <select id="createAccountType" class="form-control">
-                     <option value="checking">Checking</option>
-                     <option value="savings">Savings</option>
+                     <option value="Savings Account">Savings Account</option>
+                     <option value="Current Account">Current Account</option>
+                     <option value="Business Account">Business Account</option>
+                     <option value="Fixed Deposit">Fixed Deposit</option>
                   </select>
                </div>
                <div class="form-group">
@@ -218,7 +241,20 @@ export const AdminView = () => {
           </div>
           <form id="editUserForm">
             <input type="hidden" id="editUserId">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+            
+            <!-- Avatar Management -->
+            <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 2.5rem; padding: 1.5rem; background: rgba(255,255,255,0.05); border-radius: 16px;">
+               <div id="editAvatarPreview" style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid var(--primary); background: #1a1a1a;">
+                  <img src="" style="width: 100%; height: 100%; object-fit: cover;" alt="Avatar">
+               </div>
+               <div style="flex: 1;">
+                  <label class="form-label">Profile Identity Picture</label>
+                  <input type="file" id="editAvatarInput" class="form-control" accept="image/*" style="font-size: 0.8rem;">
+                  <input type="hidden" id="editAvatarBase64">
+               </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
                <div class="form-group">
                   <label class="form-label">Full Legal Name</label>
                   <input type="text" id="editFullName" class="form-control" required>
@@ -228,11 +264,36 @@ export const AdminView = () => {
                   <input type="text" id="editAccountNum" class="form-control" required>
                </div>
                <div class="form-group">
-                  <label class="form-label">System Role</label>
-                  <select id="editRole" class="form-control">
-                     <option value="user">Retail Customer</option>
-                     <option value="admin">Bank Administrator</option>
-                  </select>
+                  <label class="form-label">Date of Birth</label>
+                  <input type="date" id="editDob" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">SSN / Tax ID</label>
+                  <input type="text" id="editSsn" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Mobile Contact</label>
+                  <input type="text" id="editPhone" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Home Address</label>
+                  <input type="text" id="editAddress" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">City</label>
+                  <input type="text" id="editCity" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Country of Residence</label>
+                  <input type="text" id="editCountry" class="form-control">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Next of Kin</label>
+                  <input type="text" id="editKin" class="form-control" placeholder="Name & Contact">
+               </div>
+               <div class="form-group">
+                  <label class="form-label">Occupation</label>
+                  <input type="text" id="editOccupation" class="form-control">
                </div>
                <div class="form-group">
                   <label class="form-label">Identity Verification</label>
@@ -240,10 +301,6 @@ export const AdminView = () => {
                      <option value="true">Verified / Active</option>
                      <option value="false">Pending / Unverified</option>
                   </select>
-               </div>
-               <div class="form-group">
-                  <label class="form-label">Mobile Contact</label>
-                  <input type="text" id="editPhone" class="form-control">
                </div>
                <div class="form-group">
                   <label class="form-label">Account Status</label>
@@ -351,9 +408,56 @@ export const AdminView = () => {
             </div>
             
             <div style="display: flex; gap: 1rem; padding: 1.5rem; background: rgba(0,0,0,0.2);">
-               <button class="btn btn-secondary" style="flex: 1;" onclick="window.print()">PRINT</button>
-               <button class="btn btn-primary close-btn" style="flex: 1;">CLOSE</button>
+               <button class="btn btn-secondary" style="flex: 1;" onclick="window.print()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                  DOWNLOAD PDF
+               </button>
+               <button class="btn btn-primary close-btn" style="flex: 1;">DISMISS</button>
             </div>
+         </div>
+      </div>
+
+      <!-- Hidden Statement Template for Print -->
+      <div id="statementTemplate" class="print-statement">
+         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px;">
+            <div>
+               <h1 style="margin: 0; font-size: 24px; color: #000;">NOVA BANK ENTERPRISE</h1>
+               <p style="margin: 5px 0; color: #666;">Global Digital Statement</p>
+            </div>
+            <div style="text-align: right;">
+               <p style="margin: 0; font-weight: 700; color: #000;">Statement Period</p>
+               <p id="stPeriod" style="margin: 5px 0; color: #000;">--</p>
+            </div>
+         </div>
+         
+         <div style="margin-bottom: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+            <div>
+               <h3 style="font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 10px;">Account Holder</h3>
+               <p id="stName" style="font-size: 18px; font-weight: 700; margin: 0; color: #000;">--</p>
+               <p id="stEmail" style="margin: 5px 0; color: #000;">--</p>
+               <p id="stAccNum" style="font-family: monospace; color: #000;">--</p>
+            </div>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: right;">
+               <h3 style="font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 10px;">Available Balance</h3>
+               <p id="stBalance" style="font-size: 28px; font-weight: 800; margin: 0; color: #000;">$0.00</p>
+            </div>
+         </div>
+
+         <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+               <tr style="background: #f1f5f9;">
+                  <th style="padding: 12px; text-align: left; border-bottom: 1px solid #000; color: #000;">Date</th>
+                  <th style="padding: 12px; text-align: left; border-bottom: 1px solid #000; color: #000;">Description</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 1px solid #000; color: #000;">Amount</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 1px solid #000; color: #000;">Status</th>
+               </tr>
+            </thead>
+            <tbody id="stBody" style="color: #000;"></tbody>
+         </table>
+
+         <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 10px; color: #999;">
+            <p>This is a computer-generated statement and does not require a physical signature.</p>
+            <p>Nova Bank is regulated by the Global Financial Authority. All rights reserved.</p>
          </div>
       </div>
 

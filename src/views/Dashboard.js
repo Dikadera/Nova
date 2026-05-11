@@ -189,15 +189,19 @@ export const DashboardView = () => {
             </div>
           </div>
 
-          <!-- TAB: External Transfer Funds -->
-          <div id="tab-transfer" class="tab-content">
-            <div class="glass-panel" style="padding: 2.5rem; margin-bottom: 2rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border-light); padding-bottom: 1.5rem;">
-                <div>
-                   <h2 style="margin-bottom: 0.5rem;">External Transfer Fund</h2>
-                   <p style="color: #eab308; font-size: 0.9rem; font-weight: 500;">⚠️ Please note that every successful transfer is not reversible</p>
-                </div>
-                <div style="text-align: right;">
+  <!-- TAB: Transfer Funds -->
+  <div id="tab-transfer" class="tab-content">
+    <div class="glass-panel" style="padding: 2rem; margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; border-bottom: 1px solid var(--border-light); padding-bottom: 1rem;">
+        <div>
+           <h2 style="margin-bottom: 0.5rem;" id="transferViewTitle">External Transfer Fund</h2>
+           <p style="color: #eab308; font-size: 0.8rem; font-weight: 500;">⚠️ Please note that every successful transfer is not reversible</p>
+        </div>
+        <div style="text-align: right;">
+           <button id="transferSwitchBtn" class="btn btn-secondary" style="font-size: 0.8rem; border: 1px solid var(--primary); color: var(--primary); background: rgba(0,210,255,0.05); padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; transition: all 0.3s ease;">Switch to Internal Transfer</button>
+        </div>
+      </div>
+      <input type="hidden" id="transferType" value="external">
                    <div style="margin-bottom: 1rem;">
                       <span class="text-muted" style="font-size: 0.8rem;">Total Balance</span>
                       <div style="font-size: 1.5rem; font-weight: 700;">$<span class="sync-balance">0.00</span> USD</div>
@@ -323,7 +327,6 @@ export const DashboardView = () => {
             </div>
           </div>
 
-          <!-- TAB: Account Statement with Filtering -->
           <div id="tab-statement" class="tab-content">
              <div class="glass-panel" style="padding: 2.5rem;">
                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
@@ -332,14 +335,9 @@ export const DashboardView = () => {
                     <p class="text-muted" style="font-size: 0.9rem;">Review and export your historical transaction data.</p>
                  </div>
                  <div style="display: flex; gap: 1rem;">
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                       <input type="date" class="form-control" style="width: 150px; font-size: 0.8rem;">
-                       <span class="text-muted">to</span>
-                       <input type="date" class="form-control" style="width: 150px; font-size: 0.8rem;">
-                    </div>
-                    <button class="btn btn-secondary" style="gap: 0.5rem;" onclick="window.print()">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                      Generate Report
+                    <button class="btn btn-primary" id="downloadStatementBtn" style="gap: 0.5rem; background: var(--success); border: none; font-weight: 700;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                      DOWNLOAD STATEMENT (PDF)
                     </button>
                  </div>
                </div>
@@ -592,6 +590,72 @@ export const DashboardView = () => {
             </div>
           </form>
         </div>
+      </div>
+      <!-- Hidden Statement Template for Print -->
+      <div id="statementTemplate" class="print-statement">
+         <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px;">
+            <div>
+               <h1 style="margin: 0; font-size: 24px; color: #000;">NOVA BANK ENTERPRISE</h1>
+               <p style="margin: 5px 0; color: #666;">Global Digital Statement</p>
+            </div>
+            <div style="text-align: right;">
+               <p style="margin: 0; font-weight: 700; color: #000;">Statement Period</p>
+               <p id="stPeriod" style="margin: 5px 0; color: #000;">--</p>
+            </div>
+         </div>
+         
+         <div style="margin-bottom: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+            <div>
+               <h3 style="font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 10px;">Account Holder</h3>
+               <p id="stName" style="font-size: 18px; font-weight: 700; margin: 0; color: #000;">--</p>
+               <p id="stEmail" style="margin: 5px 0; color: #000;">--</p>
+               <p id="stAccNum" style="font-family: monospace; color: #000;">--</p>
+            </div>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: right;">
+               <h3 style="font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 10px;">Available Balance</h3>
+               <p id="stBalance" style="font-size: 28px; font-weight: 800; margin: 0; color: #000;">$0.00</p>
+            </div>
+         </div>
+
+         <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+               <tr style="background: #f1f5f9;">
+                  <th style="padding: 12px; text-align: left; border-bottom: 1px solid #000; color: #000;">Date</th>
+                  <th style="padding: 12px; text-align: left; border-bottom: 1px solid #000; color: #000;">Description</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 1px solid #000; color: #000;">Amount</th>
+                  <th style="padding: 12px; text-align: right; border-bottom: 1px solid #000; color: #000;">Status</th>
+               </tr>
+            </thead>
+            <tbody id="stBody" style="color: #000;"></tbody>
+         </table>
+
+         <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; font-size: 10px; color: #999;">
+            <p>This is a computer-generated statement and does not require a physical signature.</p>
+            <p>Nova Bank is regulated by the Global Financial Authority. All rights reserved.</p>
+         </div>
+      </div>
+
+      <div id="modalBackdrop" class="modal-backdrop"></div>
+
+      <!-- Transfer OTP Modal -->
+      <div id="transferOtpModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
+         <div class="glass-panel animate-fade-in" style="padding: 3rem; max-width: 450px; width: 90%; text-align: center;">
+            <div style="background: rgba(0,210,255,0.1); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h2 style="margin-bottom: 1rem; color: white;">Authorize Transfer</h2>
+            <p class="text-muted" style="margin-bottom: 2rem; font-size: 0.9rem;">
+               A unique transaction OTP has been sent to your email. Please enter it below to confirm this transfer.
+            </p>
+            <form id="transferOtpForm">
+               <div class="form-group" style="margin-bottom: 1.5rem;">
+                  <input type="text" id="transferOtpInput" class="form-control" style="font-size: 2rem; text-align: center; letter-spacing: 10px; font-weight: 700;" placeholder="000000" maxlength="6" required autocomplete="off">
+               </div>
+               <div id="transferOtpMsg" style="margin-bottom: 1rem; font-size: 0.85rem; display: none;"></div>
+               <button type="submit" class="btn btn-primary" id="confirmTransferBtn" style="width: 100%; margin-bottom: 1rem;">Confirm Transaction</button>
+               <button type="button" class="btn" style="width: 100%; background: rgba(255,255,255,0.05); color: white;" onclick="document.getElementById('transferOtpModal').style.display='none'">Cancel</button>
+            </form>
+         </div>
       </div>
     </div>
   `;

