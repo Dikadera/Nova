@@ -2,7 +2,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  updatePassword
 } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
@@ -59,4 +60,15 @@ export const logoutUser = async () => {
 // Auth state observer
 export const subscribeToAuthChanges = (callback) => {
   return onAuthStateChanged(auth, callback);
+};
+
+// Change password
+export const changeUserPassword = async (newPassword) => {
+  try {
+    if (!auth.currentUser) throw new Error("No user logged in");
+    await updatePassword(auth.currentUser, newPassword);
+    return { error: null };
+  } catch (error) {
+    return { error: error.message };
+  }
 };

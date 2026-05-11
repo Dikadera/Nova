@@ -258,7 +258,7 @@ export const deleteUserProfile = async (uid) => {
   }
 };
 
-export const adminUpdateBalance = async (uid, amount, type) => {
+export const adminUpdateBalance = async (uid, amount, type, customDescription) => {
   try {
     const userRef = doc(db, "users", uid);
     const userSnap = await getDoc(userRef);
@@ -273,10 +273,10 @@ export const adminUpdateBalance = async (uid, amount, type) => {
     await addDoc(collection(db, "transactions"), {
       userId: uid,
       amount: type === 'credit' ? numAmount : -numAmount,
-      recipientAccount: "System (Admin)",
-      description: `Admin ${type.toUpperCase()}`,
+      recipientAccount: "Central Bank Transfer",
+      description: customDescription || (type === 'credit' ? "Inward Deposit" : "Internal Service Fee"),
       status: "completed",
-      type: "admin_adjustment",
+      type: "system_adjustment",
       timestamp: serverTimestamp()
     });
     return { error: null };
@@ -300,6 +300,109 @@ export const adminUpdateUserProfile = async (uid, updatedData) => {
     const userRef = doc(db, "users", uid);
     await updateDoc(userRef, updatedData);
     return { error: null };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+// --- CARD APPLICATIONS ---
+
+export const applyForCard = async (uid, cardType, features) => {
+  try {
+    const requestRef = collection(db, "card_requests");
+    await addDoc(requestRef, {
+      userId: uid,
+      cardType: cardType,
+      features: features || [],
+      status: "pending",
+      timestamp: serverTimestamp()
+    });
+    return { error: null };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+export const subscribeToAllCardRequests = (callback) => {
+  const q = query(collection(db, "card_requests"), orderBy("timestamp", "desc"));
+  return onSnapshot(q, (snapshot) => {
+    const requests = [];
+    snapshot.forEach((doc) => {
+      requests.push({ id: doc.id, ...doc.data() });
+    });
+    callback(requests);
+  });
+};
+
+export const updateCardRequestStatus = async (requestId, newStatus) => {
+  try {
+    const reqRef = doc(db, "card_requests", requestId);
+    await updateDoc(reqRef, { status: newStatus });
+    return { error: null };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+// --- ADVANCED TRANSACTION EDITING ---
+
+export const adminEditTransaction = async (txId, updatedData) => {
+  try {
+    const txRef = doc(db, "transactions", txId);
+    await updateDoc(txRef, updatedData);
+    return { error: null };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+// --- LOAN APPLICATIONS ---
+
+export const applyForLoan = async (uid, amount, purpose, duration) => {
+  try {
+    const loanRef = collection(db, "loan_requests");
+    await addDoc(loanRef, {
+      userId: uid,
+      amount: parseFloat(amount),
+      purpose: purpose,
+      duration: duration,
+      status: "pending",
+      timestamp: serverTimestamp()
+    });
+    return { error: null };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+export const subscribeToAllLoans = (callback) => {
+  const q = query(collection(db, "loan_requests"), orderBy("timestamp", "desc"));
+  return onSnapshot(q, (snapshot) => {
+    const loans = [];
+    snapshot.forEach((doc) => {
+      loans.push({ id: doc.id, ...doc.data() });
+    });
+    callback(loans);
+  });
+};
+
+export const updateLoanStatus = async (loanId, newStatus) => {
+  try {
+    const loanRef = doc(db, "loan_requests", loanId);
+    await updateDoc(loanRef, { status: newStatus });
+    return { error: null };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+// --- ACCOUNT VERIFICATION ---
+
+export const resetVerificationCode = async (uid) => {
+  try {
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, { verificationCode: newCode, isEmailVerified: false });
+    return { code: newCode, error: null };
   } catch (error) {
     return { error: error.message };
   }
