@@ -391,6 +391,14 @@ const router = async () => {
 
    document.querySelector("#app").innerHTML = match.route.view(currentUser);
    attachEventListeners(match.route.path);
+
+   // Safely remove preloader only after the view is fully rendered
+   const preloader = document.getElementById('preloader');
+   if (preloader) {
+      preloader.style.opacity = '0';
+      preloader.style.visibility = 'hidden';
+      setTimeout(() => preloader.remove(), 500);
+   }
 };
 
 const attachEventListeners = async (path) => {
@@ -889,14 +897,4 @@ subscribeToAuthChanges(async (user) => {
    }
 });
 
-// Preloader Logic
-window.addEventListener('load', () => {
-   setTimeout(() => {
-      const preloader = document.getElementById('preloader');
-      if (preloader) {
-         preloader.style.opacity = '0';
-         preloader.style.visibility = 'hidden';
-         setTimeout(() => preloader.remove(), 500);
-      }
-   }, 1000);
-});
+// Preloader is now managed securely inside the router() function to prevent blank screens.
