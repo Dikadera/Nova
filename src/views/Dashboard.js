@@ -1,4 +1,5 @@
 export const DashboardView = () => {
+  const user = window.currentUserProfile || {};
   const countries = [
     "AFGHANISTAN", "ALBANIA", "ALGERIA", "ANDORRA", "ANGOLA", "ANTIGUA AND BARBUDA", "ARGENTINA", "ARMENIA", "AUSTRALIA", "AUSTRIA", "AZERBAIJAN",
     "BAHAMAS", "BAHRAIN", "BANGLADESH", "BARBADOS", "BELARUS", "BELGIUM", "BELIZE", "BENIN", "BHUTAN", "BOLIVIA", "BOSNIA AND HERZEGOVINA", "BOTSWANA", "BRAZIL", "BRUNEI", "BULGARIA", "BURKINA FASO", "BURUNDI",
@@ -32,6 +33,12 @@ export const DashboardView = () => {
         </div>
         
         <ul class="sidebar-menu">
+          <li class="menu-item" style="border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0.5rem; color: var(--primary);">
+            <a href="/" data-link style="display: flex; align-items: center; gap: 0.8rem; color: inherit; text-decoration: none; width: 100%;">
+               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+               Back to Home
+            </a>
+          </li>
           <li class="menu-item active" data-tab="tab-dashboard">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
             Dashboard
@@ -117,7 +124,7 @@ export const DashboardView = () => {
                              </div>
                              <div style="font-size: 0.85rem; color: var(--primary); display: flex; align-items: center; gap: 0.4rem; background: rgba(0,210,255,0.1); padding: 0.2rem 0.6rem; border-radius: 4px;">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                                <span>850 Nova Points</span>
+                                <span>${user.novaPoints || 0} Nova Points</span>
                              </div>
                           </div>
                       </div>
@@ -135,11 +142,11 @@ export const DashboardView = () => {
                          <span class="text-muted" style="font-size: 0.7rem;">Travel Fund</span>
                       </div>
                       <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.5rem;">
-                         <span style="font-weight: 700;">$12,450 / $15,000</span>
-                         <span class="text-primary" style="font-size: 0.8rem; font-weight: 600;">83%</span>
+                         <span style="font-weight: 700;">$${(user.smartSavings || 0).toLocaleString()} / $15,000</span>
+                         <span class="text-primary" style="font-size: 0.8rem; font-weight: 600;">${Math.min(100, Math.round(((user.smartSavings || 0) / 15000) * 100))}%</span>
                       </div>
                       <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px;">
-                         <div style="width: 83%; height: 100%; background: var(--primary); border-radius: 3px; box-shadow: 0 0 10px var(--primary);"></div>
+                         <div style="width: ${Math.min(100, Math.round(((user.smartSavings || 0) / 15000) * 100))}%; height: 100%; background: var(--primary); border-radius: 3px; box-shadow: 0 0 10px var(--primary);"></div>
                       </div>
                    </div>
                    <div class="glass-panel" style="padding: 1.5rem; background: rgba(16, 185, 129, 0.03);">

@@ -6,7 +6,8 @@ import {
    deleteUserProfile, adminUpdateBalance, updateTransactionStatus,
    adminUpdateUserProfile, updateUserProfile, resetUserVerification, verifyUserOTP,
    generateTransactionOTP, verifyTransactionOTP,
-   adminEditTransaction, restrictUserAccount, updateCardRequestStatus, updateLoanStatus
+   adminEditTransaction, restrictUserAccount, updateCardRequestStatus, updateLoanStatus,
+   incrementUserRewards
 } from './services/db.js';
 import { LandingView } from './views/Landing.js';
 import { LoginView } from './views/Login.js';
@@ -384,7 +385,7 @@ const router = async () => {
    if (match.route.auth === 'unauthenticated' && currentUser) return navigateTo('/dashboard');
    if (match.route.auth === 'admin' && (!globalProfileData || globalProfileData.role !== 'admin')) return navigateTo('/dashboard');
 
-   document.querySelector("#app").innerHTML = match.route.view();
+   document.querySelector("#app").innerHTML = match.route.view(currentUser);
    attachEventListeners(match.route.path);
 };
 
@@ -758,7 +759,10 @@ const attachEventListeners = async (path) => {
          btn.disabled = true;
          const res = await loginUser(document.getElementById('email').value, document.getElementById('password').value);
          if (res.error) { err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; }
-         else navigateTo('/dashboard');
+         else {
+            await incrementUserRewards(res.user.uid);
+            navigateTo('/dashboard');
+         }
       });
    }
 
@@ -819,4 +823,16 @@ subscribeToAuthChanges(async (user) => {
       globalProfileData = null;
       router();
    }
+});
+
+// Preloader Logic
+window.addEventListener('load', () => {
+   setTimeout(() => {
+      const preloader = document.getElementById('preloader');
+      if (preloader) {
+         preloader.style.opacity = '0';
+         preloader.style.visibility = 'hidden';
+         setTimeout(() => preloader.remove(), 500);
+      }
+   }, 1000);
 });

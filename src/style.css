@@ -324,7 +324,7 @@ h2 { font-size: 2rem; }
   width: 100%;
   max-width: 400px;
   height: 240px;
-  background-image: url('./world_map_card_bg_1778488354706.png');
+  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 50%, #1e3a8a 100%);
   background-size: cover;
   background-position: center;
   border-radius: var(--radius-md);
@@ -345,7 +345,8 @@ h2 { font-size: 2rem; }
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.2) 100%);
+  background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.15) 0%, transparent 40%),
+              radial-gradient(circle at 80% 80%, rgba(0,210,255,0.1) 0%, transparent 40%);
   pointer-events: none;
   z-index: 2;
 }
@@ -849,6 +850,38 @@ h2 { font-size: 2rem; }
     bottom: 2rem !important;
     right: 2rem !important;
     z-index: 9999 !important;
+  }
+
+  /* Landing Page Mobile */
+  .navbar {
+    width: 95% !important;
+    padding: 0.6rem 1rem !important;
+    top: 1rem !important;
+  }
+  
+  .navbar-brand span {
+    font-size: 1.1rem !important;
+  }
+  
+  .hero-section {
+    padding-top: 80px !important;
+  }
+  
+  .hero-title {
+    font-size: 2.5rem !important;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem !important;
+  }
+
+  .responsive-grid-2, .responsive-grid-3 {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+
+  .section-padding {
+    padding: 60px 0 !important;
   }
 }
 
