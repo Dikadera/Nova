@@ -101,7 +101,7 @@ export const DashboardView = () => {
 
           <!-- TAB: Dashboard Overview -->
           <div id="tab-dashboard" class="tab-content active">
-            <div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem;">
+            <div class="responsive-grid-main">
               <div>
                 <div class="glass-panel" style="padding: 2.5rem; margin-bottom: 2rem; background: linear-gradient(135deg, rgba(20,26,40,0.8) 0%, rgba(0,210,255,0.1) 100%); position: relative; overflow: hidden;">
                   <!-- Background Pattern -->
@@ -110,7 +110,7 @@ export const DashboardView = () => {
                   <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 2;">
                       <div>
                           <h3 class="text-muted" style="margin-bottom: 0.5rem; font-weight: 400;">Total Balance</h3>
-                          <h1 style="margin-bottom: 0.5rem; font-size: 3.5rem;">$<span class="sync-balance">0.00</span></h1>
+                          <h1 class="balance-display" style="margin-bottom: 0.5rem;">$<span class="sync-balance">0.00</span></h1>
                           <div style="display: flex; gap: 1.5rem; align-items: center;">
                              <div style="font-size: 0.85rem; color: var(--text-muted);">
                                 Available: <span style="color: var(--text-main); font-weight: 600;">$<span class="sync-balance">0.00</span></span>
@@ -128,7 +128,7 @@ export const DashboardView = () => {
                 </div>
 
                 <!-- AI Insights / Rewards Widgets -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="responsive-grid-2" style="margin-bottom: 2rem;">
                    <div class="glass-panel" style="padding: 1.5rem;">
                       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                          <h4 style="font-size: 0.9rem;">Smart Savings Goal</h4>
@@ -149,7 +149,7 @@ export const DashboardView = () => {
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                          </div>
                       </div>
-                      <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">"You saved <span style="color: var(--success); font-weight: 600;">$142.00</span> this month by optimizing your recurring subscriptions!"</p>
+                      <p class="text-justify" style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">"You saved <span style="color: var(--success); font-weight: 600;">$142.00</span> this month by optimizing your recurring subscriptions!"</p>
                    </div>
                 </div>
 
@@ -168,7 +168,7 @@ export const DashboardView = () => {
                 <div id="mastercardContainer" style="margin-bottom: 2rem;"></div>
                 <div class="glass-panel" style="padding: 1.5rem; background: rgba(0, 210, 255, 0.03); margin-bottom: 2rem;">
                   <h4 style="margin-bottom: 1rem; color: var(--primary); font-size: 0.9rem;">Quick Services</h4>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div class="responsive-grid-2-sm">
                     <button class="btn btn-secondary" style="flex-direction: column; gap: 0.5rem; padding: 1rem; border-color: rgba(255,255,255,0.05);" id="quickTransferBtn">
                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M17 3v18M17 3l-4 4M17 3l4 4M7 21V3M7 21l-4-4M7 21l4-4"/></svg>
                        <span style="font-size: 0.8rem;">Transfer</span>
@@ -182,7 +182,7 @@ export const DashboardView = () => {
                 
                 <div class="glass-panel" style="padding: 1.5rem; background: linear-gradient(to bottom, rgba(165,180,252,0.1), transparent);">
                    <h4 style="margin-bottom: 1rem; font-size: 0.9rem;">Platinum Loyalty</h4>
-                   <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Unlock premium lounge access and 2% cashback by maintaining a balance above $50k.</p>
+                   <p class="text-justify" style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.5rem;">Unlock premium lounge access and 2% cashback by maintaining a balance above $50k.</p>
                    <button class="btn btn-primary" style="width: 100%; font-size: 0.8rem;">Explore Perks</button>
                 </div>
               </div>
@@ -191,7 +191,7 @@ export const DashboardView = () => {
 
   <!-- TAB: Transfer Funds -->
   <div id="tab-transfer" class="tab-content">
-    <div class="glass-panel" style="padding: 2rem; margin-bottom: 2rem;">
+    <div class="glass-panel" style="padding: 2.5rem; margin-bottom: 2rem; max-width: 1000px; margin: 0 auto;">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; border-bottom: 1px solid var(--border-light); padding-bottom: 1rem;">
         <div>
            <h2 style="margin-bottom: 0.5rem;" id="transferViewTitle">External Transfer Fund</h2>
@@ -211,10 +211,9 @@ export const DashboardView = () => {
                       <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">$<span class="sync-balance">0.00</span> USD</div>
                    </div>
                 </div>
-              </div>
 
               <form id="transferForm">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="responsive-grid-2">
                    <div class="form-group">
                       <label class="form-label">Bank Name</label>
                       <input type="text" id="transferBankName" class="form-control" required placeholder="Enter recipient bank name">
@@ -276,12 +275,12 @@ export const DashboardView = () => {
 
           <!-- TAB: Advanced Loan Request -->
           <div id="tab-loans" class="tab-content">
-            <div class="glass-panel" style="padding: 2.5rem; max-width: 800px;">
+            <div class="glass-panel" style="padding: 2.5rem; max-width: 800px; margin: 0 auto;">
               <h3 style="margin-bottom: 0.5rem;">Instant Credit Application</h3>
-              <p class="text-muted" style="margin-bottom: 2rem;">Get approved for credit limits up to $250,000 based on your account standing.</p>
+              <p class="text-muted text-justify" style="margin-bottom: 2rem;">Get approved for credit limits up to $250,000 based on your account standing.</p>
               
               <form id="loanForm">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="responsive-grid-2">
                    <div class="form-group">
                       <label class="form-label">Loan Type</label>
                       <select class="form-control" required>
@@ -328,11 +327,11 @@ export const DashboardView = () => {
           </div>
 
           <div id="tab-statement" class="tab-content">
-             <div class="glass-panel" style="padding: 2.5rem;">
+             <div class="glass-panel" style="padding: 2.5rem; max-width: 1200px; margin: 0 auto;">
                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
                  <div>
                     <h3>Detailed Account Statement</h3>
-                    <p class="text-muted" style="font-size: 0.9rem;">Review and export your historical transaction data.</p>
+                    <p class="text-muted text-justify" style="font-size: 0.9rem;">Review and export your historical transaction data for audit and accounting purposes.</p>
                  </div>
                  <div style="display: flex; gap: 1rem;">
                     <button class="btn btn-primary" id="downloadStatementBtn" style="gap: 0.5rem; background: var(--success); border: none; font-weight: 700;">
@@ -347,8 +346,9 @@ export const DashboardView = () => {
 
           <!-- TAB: Cards Center -->
           <div id="tab-cards" class="tab-content">
+            <div style="max-width: 1200px; margin: 0 auto;">
             <h3 style="margin-bottom: 2rem;">Manage Your Cards</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem;">
+            <div class="responsive-grid-cards">
               <div class="glass-panel" style="padding: 2rem; border-left: 4px solid var(--primary);">
                  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
                     <div style="background: rgba(0,210,255,0.1); width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
@@ -357,7 +357,7 @@ export const DashboardView = () => {
                     <span class="text-success" style="font-size: 0.75rem; font-weight: 700; background: rgba(16, 185, 129, 0.1); padding: 0.25rem 0.5rem; border-radius: 4px;">ACTIVE</span>
                  </div>
                  <h4>Virtual Platinum Mastercard</h4>
-                 <p class="text-muted" style="margin: 1rem 0; font-size: 0.9rem;">Unlimited online transactions with real-time fraud protection.</p>
+                 <p class="text-muted text-justify" style="margin: 1rem 0; font-size: 0.9rem;">Unlimited online transactions with real-time fraud protection and global acceptance.</p>
                  <button class="btn btn-secondary" style="width: 100%; font-size: 0.85rem;">View Card Details</button>
               </div>
 
@@ -369,19 +369,20 @@ export const DashboardView = () => {
                     <span style="font-size: 0.75rem; font-weight: 700; color: #d4af37;">PREMIUM TIER</span>
                  </div>
                  <h4>Gold Credit Card</h4>
-                 <ul style="margin: 1rem 0; padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted);">
-                    <li>0% APR for the first 6 months</li>
-                    <li>Up to $50,000 credit limit</li>
-                    <li>Exclusive travel rewards</li>
+                 <ul class="text-justify" style="margin: 1rem 0; padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted);">
+                    <li>0% APR for the first 6 months of usage</li>
+                    <li>Up to $50,000 instant credit limit approval</li>
+                    <li>Exclusive worldwide travel rewards and insurance</li>
                  </ul>
                  <button class="btn btn-primary" style="width: 100%; background: #d4af37; border: none; color: #1a1a1a;" id="applyGoldBtn">Apply for Gold Credit</button>
               </div>
             </div>
           </div>
+          </div>
 
           <!-- TAB: Security & Settings -->
           <div id="tab-password" class="tab-content">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <div class="responsive-grid-2" style="max-width: 1200px; margin: 0 auto;">
                <div class="glass-panel" style="padding: 2rem;">
                  <h3 style="margin-bottom: 1.5rem;">Security Credentials</h3>
                  <form id="changePasswordForm">
@@ -407,7 +408,7 @@ export const DashboardView = () => {
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                        <div>
                           <div style="font-weight: 500;">Two-Factor Authentication</div>
-                          <div class="text-muted" style="font-size: 0.8rem;">Add an extra layer of security to your account.</div>
+                          <div class="text-muted text-justify" style="font-size: 0.8rem;">Add an extra layer of security to your account by requiring a code during login.</div>
                        </div>
                        <div style="width: 48px; height: 24px; background: var(--success); border-radius: 12px; position: relative; cursor: pointer;">
                           <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; right: 2px; top: 2px;"></div>
@@ -416,7 +417,7 @@ export const DashboardView = () => {
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                        <div>
                           <div style="font-weight: 500;">Email Notifications</div>
-                          <div class="text-muted" style="font-size: 0.8rem;">Get alerts for every transaction via email.</div>
+                          <div class="text-muted text-justify" style="font-size: 0.8rem;">Get real-time alerts for every successful transaction via your registered email.</div>
                        </div>
                        <div style="width: 48px; height: 24px; background: var(--success); border-radius: 12px; position: relative; cursor: pointer;">
                           <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; right: 2px; top: 2px;"></div>
@@ -425,7 +426,7 @@ export const DashboardView = () => {
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                        <div>
                           <div style="font-weight: 500;">Marketing Emails</div>
-                          <div class="text-muted" style="font-size: 0.8rem;">Receive news about products and offers.</div>
+                          <div class="text-muted text-justify" style="font-size: 0.8rem;">Receive news about premium products, exclusive offers, and banking updates.</div>
                        </div>
                        <div style="width: 48px; height: 24px; background: rgba(255,255,255,0.1); border-radius: 12px; position: relative; cursor: pointer;">
                           <div style="width: 20px; height: 20px; background: white; border-radius: 50%; position: absolute; left: 2px; top: 2px;"></div>
@@ -438,8 +439,8 @@ export const DashboardView = () => {
 
           <!-- TAB: My Profile -->
           <div id="tab-profile" class="tab-content">
-            <div class="glass-panel" style="padding: 2.5rem;">
-              <div style="display: flex; gap: 2.5rem; align-items: center; margin-bottom: 4rem;">
+            <div class="glass-panel" style="padding: 2.5rem; max-width: 1200px; margin: 0 auto;">
+              <div class="profile-header-flex">
                 <div class="profile-avatar-container" style="width: 140px; height: 140px; font-size: 3.5rem; box-shadow: 0 0 20px rgba(0,210,255,0.2);" id="profileViewAvatar"></div>
                 <div>
                   <h1 id="profileViewName" style="margin-bottom: 0.25rem;">---</h1>
@@ -451,10 +452,10 @@ export const DashboardView = () => {
                 </div>
               </div>
 
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem;">
+              <div class="responsive-grid-profile">
                  <div>
                     <h4 style="margin-bottom: 2rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem;">Identity Information</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div class="responsive-grid-2">
                        <div>
                           <label class="text-muted" style="font-size: 0.75rem; display: block; margin-bottom: 0.5rem;">Account Number</label>
                           <div id="profileViewAccountNum" style="font-weight: 600; font-family: monospace; font-size: 1.1rem;">---</div>
@@ -476,11 +477,12 @@ export const DashboardView = () => {
                  <div>
                     <h4 style="margin-bottom: 2rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem;">Residential Address</h4>
                     <div id="profileViewAddress" style="font-weight: 500; line-height: 1.8; font-size: 1.1rem;">---</div>
-                    <div class="text-muted" style="margin-top: 1rem; font-size: 0.85rem;">Verified residential address on file since account opening.</div>
+                    <div class="text-muted text-justify" style="margin-top: 1rem; font-size: 0.85rem;">Verified residential address on file since account opening. This data is protected by Nova Encryption.</div>
                  </div>
               </div>
             </div>
           </div>
+
 
         </div>
       </main>
@@ -508,11 +510,11 @@ export const DashboardView = () => {
             </button>
          </div>
          <div style="flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
-            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; font-size: 0.85rem; align-self: flex-start; max-width: 85%;">
+            <div class="text-justify" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; font-size: 0.85rem; align-self: flex-start; max-width: 85%;">
                Hello! I'm your Nova AI co-pilot. I've analyzed your recent spending and notice you could save <strong>$45.00</strong> this month by switching to a weekly grocery budget.
             </div>
-            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; font-size: 0.85rem; align-self: flex-start; max-width: 85%;">
-               Would you like me to set up a new "Grocery" savings goal for you?
+            <div class="text-justify" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; font-size: 0.85rem; align-self: flex-start; max-width: 85%;">
+               Would you like me to set up a new "Grocery" savings goal for you to optimize your wealth?
             </div>
          </div>
          <div style="padding: 1rem; border-top: 1px solid var(--border-light); display: flex; gap: 0.5rem;">
@@ -644,8 +646,8 @@ export const DashboardView = () => {
                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             </div>
             <h2 style="margin-bottom: 1rem; color: white;">Authorize Transfer</h2>
-            <p class="text-muted" style="margin-bottom: 2rem; font-size: 0.9rem;">
-               A unique transaction OTP has been sent to your email. Please enter it below to confirm this transfer.
+            <p class="text-muted text-justify" style="margin-bottom: 2rem; font-size: 0.9rem;">
+               A unique transaction OTP has been sent to your email. Please enter it below to confirm this transfer. This code expires in 15 minutes for your security.
             </p>
             <form id="transferOtpForm">
                <div class="form-group" style="margin-bottom: 1.5rem;">

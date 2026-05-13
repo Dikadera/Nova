@@ -22,22 +22,25 @@ export const createUserProfile = async (uid, email, fullName) => {
     
     // Generate 6-digit OTP
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const accountNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
 
     await setDoc(userRef, {
       email: email,
       fullName: fullName || "",
       balance: 0, 
-      accountNumber: Math.floor(Math.random() * 10000000000).toString().padStart(10, '0'),
+      accountNumber: accountNumber,
       role: "customer",
       status: "active",
       verificationCode: verificationCode,
-      isEmailVerified: false, // Strict: Everyone must verify
+      isEmailVerified: false,
+      novaPoints: 5,
+      smartSavings: 0,
       createdAt: serverTimestamp()
     });
 
-    return { error: null, verificationCode };
+    return { error: null, verificationCode, accountNumber };
   } catch (error) {
-    return { error: error.message, verificationCode: null };
+    return { error: error.message, verificationCode: null, accountNumber: null };
   }
 };
 
@@ -210,22 +213,6 @@ export const createTransaction = async (uid, amount, recipientAccount, descripti
       amount: -amount,
       recipientAccount,
       description: description || "Transfer Out",
-      status: "completed",
-      type: "transfer",
-      timestamp: serverTimestamp()
-    });
-
-    // Step 4: Credit recipient
-    await updateDoc(doc(db, "users", recipientId), {
-      balance: recipientBalance + amount
-    });
-
-    // Step 5: Log transaction for recipient
-    await addDoc(collection(db, "transactions"), {
-      userId: recipientId,
-      amount: amount,
-      senderAccount: senderAccount,
-      description: description || "Received Transfer",
       status: "completed",
       type: "transfer",
       timestamp: serverTimestamp()
@@ -456,6 +443,27 @@ export const resetVerificationCode = async (uid) => {
     const userRef = doc(db, "users", uid);
     await updateDoc(userRef, { verificationCode: newCode, isEmailVerified: false });
     return { code: newCode, error: null };
+  } catch (error) {
+    return { error: error.message };
+  }
+};
+
+// Increment Nova Points and Smart Savings on login
+export const incrementUserRewards = async (uid) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      const currentPoints = data.novaPoints || 0;
+      const currentSavings = data.smartSavings || 0;
+      
+      await updateDoc(userRef, {
+        novaPoints: (currentPoints || 0) + 5,
+        smartSavings: (currentSavings || 0) + 120.50
+      });
+    }
+    return { error: null };
   } catch (error) {
     return { error: error.message };
   }

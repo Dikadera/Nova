@@ -4,12 +4,22 @@ export const AdminView = () => {
       
       <!-- Corporate Sidebar -->
       <aside class="admin-sidebar" id="adminSidebar">
-        <div class="sidebar-header">
-          <div class="logo-area">
+        <div class="sidebar-header" style="display: flex; flex-direction: column; gap: 1.5rem; padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 1rem;">
+            <button id="backToUserDashboard" class="btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--primary); flex: 1; justify-content: flex-start; gap: 0.6rem; padding: 0.6rem 1rem; font-size: 0.75rem; font-weight: 700; border-radius: 8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              BACK TO PORTAL
+            </button>
+            <button id="closeAdminSidebarBtn" class="mobile-only" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+          
+          <div class="logo-area" style="display: flex; align-items: center; gap: 0.8rem;">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             <div style="display: flex; flex-direction: column;">
-               <span style="font-weight: 800; font-size: 1.1rem; letter-spacing: 1px; color: #fff;">NOVA BANK</span>
-               <span style="font-size: 0.6rem; color: var(--primary); letter-spacing: 2px; font-weight: 700;">ADMIN CONTROL</span>
+               <span style="font-weight: 800; font-size: 1rem; letter-spacing: 1px; color: #fff; line-height: 1;">NOVA BANK</span>
+               <span style="font-size: 0.55rem; color: var(--primary); letter-spacing: 1.5px; font-weight: 700; margin-top: 0.2rem;">ADMIN CONTROL</span>
             </div>
           </div>
         </div>
@@ -57,12 +67,18 @@ export const AdminView = () => {
             </button>
             <h2 id="adminTabTitle">Customer Management</h2>
           </div>
-          <div class="header-stats" style="display: flex; align-items: center; gap: 2rem;">
-             <div class="mini-stat">
+          <div class="header-stats" style="display: flex; align-items: center; gap: 1.5rem;">
+             
+             <div class="admin-search-area">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="adminGlobalSearch" placeholder="Filter records..." class="admin-search-input">
+             </div>
+
+             <div class="mini-stat desktop-only">
                 <span class="stat-label">Active Users</span>
                 <span class="stat-value" id="totalUsersCount">0</span>
              </div>
-             <button id="openCreateUserModal" class="btn btn-primary" style="padding: 0.6rem 1.2rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.8rem;">
+             <button id="openCreateUserModal" class="btn btn-primary desktop-only" style="padding: 0.6rem 1.2rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 0.8rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
                 NEW CUSTOMER
              </button>
@@ -176,7 +192,7 @@ export const AdminView = () => {
         <div class="glass-panel" style="padding: 2.5rem; width: 90%; max-width: 500px; border: 1px solid rgba(255,255,255,0.1);">
           <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: var(--primary);">Onboard New Customer</h3>
           <form id="createUserForm">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem;">
                <div class="form-group">
                   <label class="form-label">Full Legal Name</label>
                   <input type="text" id="createFullName" class="form-control" required placeholder="John Doe">
@@ -254,7 +270,7 @@ export const AdminView = () => {
                </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1.5rem;">
                <div class="form-group">
                   <label class="form-label">Full Legal Name</label>
                   <input type="text" id="editFullName" class="form-control" required>
@@ -462,6 +478,11 @@ export const AdminView = () => {
       </div>
 
       <div id="modalBackdrop" class="modal-backdrop"></div>
+      
+      <!-- Floating Action Button for Mobile -->
+      <button id="fabCreateUser" class="fab mobile-only">
+         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </button>
     </div>
   `;
 };
