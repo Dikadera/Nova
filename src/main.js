@@ -358,7 +358,11 @@ const renderAvatar = (user, containerId) => {
 
 // Router
 const navigateTo = (url) => {
-   history.pushState(null, null, url);
+   try {
+      history.pushState(null, null, url);
+   } catch(e) {
+      console.warn("pushState error:", e);
+   }
    router();
 };
 
@@ -865,6 +869,7 @@ subscribeToAuthChanges(async (user) => {
    if (globalProfileUnsub) globalProfileUnsub();
 
    if (user) {
+      router(); // Render loading state immediately
       globalProfileUnsub = subscribeToProfile(user.uid, (profile) => {
          globalProfileData = profile;
          window.currentUserProfile = profile;
