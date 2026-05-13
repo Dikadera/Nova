@@ -1079,3 +1079,6 @@ select option {
 .notification.info { border-left: 4px solid var(--primary); }
 @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
 @keyframes fadeOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+
+
+

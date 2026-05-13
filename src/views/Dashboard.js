@@ -494,42 +494,6 @@ export const DashboardView = () => {
         </div>
       </main>
 
-      <!-- AI Assistant Floating Bubble -->
-      <div id="openAiAssistant" style="position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 10px 25px rgba(0,210,255,0.3); z-index: 1000; animation: bounce 2s infinite;">
-         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-         <div style="position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; background: #eab308; border-radius: 50%; border: 2px solid white;"></div>
-      </div>
-
-      <!-- AI Assistant Panel -->
-      <div id="aiAssistantPanel" class="glass-panel" style="display: none; position: fixed; bottom: 6rem; right: 2rem; width: 350px; height: 500px; flex-direction: column; overflow: hidden; z-index: 1001; animation: slideUp 0.3s ease;">
-         <div style="padding: 1.5rem; background: var(--primary); color: white; display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-               <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-               </div>
-               <div>
-                  <div style="font-weight: 700; font-size: 0.9rem;">Nova AI Co-pilot</div>
-                  <div style="font-size: 0.7rem; opacity: 0.8;">Online • Financial Advisor</div>
-               </div>
-            </div>
-            <button id="closeAiAssistant" style="background: none; border: none; color: white; cursor: pointer;">
-               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-         </div>
-         <div style="flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
-            <div class="text-justify" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; font-size: 0.85rem; align-self: flex-start; max-width: 85%;">
-               Hello! I'm your Nova AI co-pilot. I've analyzed your recent spending and notice you could save <strong>$45.00</strong> this month by switching to a weekly grocery budget.
-            </div>
-            <div class="text-justify" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px; font-size: 0.85rem; align-self: flex-start; max-width: 85%;">
-               Would you like me to set up a new "Grocery" savings goal for you to optimize your wealth?
-            </div>
-         </div>
-         <div style="padding: 1rem; border-top: 1px solid var(--border-light); display: flex; gap: 0.5rem;">
-            <input type="text" class="form-control" placeholder="Ask Nova AI..." style="font-size: 0.85rem; padding: 0.5rem 1rem;">
-            <button class="btn btn-primary" style="padding: 0.5rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button>
-         </div>
-      </div>
-
       <!-- Transaction Receipt Modal -->
       <div id="receiptModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
          <div class="receipt-container animate-fade-in" style="background: white; width: 90%; max-width: 500px; border-radius: 12px; overflow: hidden; color: #333; position: relative;">

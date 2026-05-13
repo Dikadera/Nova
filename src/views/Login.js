@@ -28,7 +28,7 @@ export const LoginView = () => {
         <div style="text-align: center; margin-top: 1.5rem; font-size: 0.875rem;">
           <p class="text-muted">Don't have an account? <a href="/register" data-link style="color: var(--primary); text-decoration: none;">Register here</a></p>
         </div>
-      </div>
     </div>
   `;
 };
+

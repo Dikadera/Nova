@@ -124,3 +124,4 @@ export const LandingView = (user) => {
     </div>
   `;
 };
+

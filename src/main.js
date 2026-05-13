@@ -46,14 +46,14 @@ document.addEventListener('click', (e) => {
 
       container.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       container.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-      
+
       const targetTab = document.getElementById(tabId);
       if (targetTab) targetTab.classList.add('active');
       menuItem.classList.add('active');
 
       const titleEl = document.getElementById('adminTabTitle') || document.getElementById('currentTabTitle');
       if (titleEl) titleEl.textContent = menuItem.textContent.trim();
-      
+
       // Auto-close sidebars
       document.getElementById('userSidebar')?.classList.remove('open');
       document.getElementById('adminSidebar')?.classList.remove('open');
@@ -127,7 +127,7 @@ window.closeModals = closeModals;
 window.handleAdminManage = (uid) => {
    const user = window.allUsers.find(u => u.id === uid);
    if (!user) return showNotification("Customer profile not found.", "error");
-   
+
    const modal = document.getElementById('editUserModal');
    if (!modal) return;
 
@@ -145,10 +145,10 @@ window.handleAdminManage = (uid) => {
    document.getElementById('editVerified').value = user.isVerified?.toString() || 'false';
    document.getElementById('editStatus').value = user.status || 'active';
    document.getElementById('otpStatus').textContent = user.transactionOTP || '000000';
-   
+
    const preview = document.getElementById('editAvatarPreview');
    if (preview) {
-      preview.innerHTML = user.profilePicture 
+      preview.innerHTML = user.profilePicture
          ? `<img src="${user.profilePicture}" style="width:100%; height:100%; object-fit:cover;">`
          : `<div style="width:100%; height:100%; background:var(--primary); color:#1a1a1a; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.5rem;">${user.fullName[0]}</div>`;
    }
@@ -165,11 +165,11 @@ window.handleAdminBalance = (uid, name, type) => {
 };
 
 window.showConfirmModal = (message) => {
-    return new Promise((resolve) => {
-        const existing = document.getElementById('customConfirmModal');
-        if (existing) existing.remove();
+   return new Promise((resolve) => {
+      const existing = document.getElementById('customConfirmModal');
+      if (existing) existing.remove();
 
-        const modalHtml = `
+      const modalHtml = `
             <div id="customConfirmModal" class="modal-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
                 <div class="glass-panel animate-fade-in" style="padding: 2.5rem; max-width: 400px; width: 90%; text-align: center; border: 1px solid rgba(239, 68, 68, 0.3);">
                     <div style="background: rgba(239, 68, 68, 0.1); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
@@ -184,24 +184,24 @@ window.showConfirmModal = (message) => {
                 </div>
             </div>
         `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        document.getElementById('confirmCancelBtn').onclick = () => {
-            document.getElementById('customConfirmModal').remove();
-            resolve(false);
-        };
-        
-        document.getElementById('confirmProceedBtn').onclick = () => {
-            document.getElementById('customConfirmModal').remove();
-            resolve(true);
-        };
-    });
+
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      document.getElementById('confirmCancelBtn').onclick = () => {
+         document.getElementById('customConfirmModal').remove();
+         resolve(false);
+      };
+
+      document.getElementById('confirmProceedBtn').onclick = () => {
+         document.getElementById('customConfirmModal').remove();
+         resolve(true);
+      };
+   });
 };
 
 window.handleAdminDelete = async (uid, name) => {
    const isConfirmed = await window.showConfirmModal(`Are you sure you want to permanently delete customer ${name}? This action cannot be undone.`);
-   if(isConfirmed) {
+   if (isConfirmed) {
       const res = await deleteUserProfile(uid);
       if (res.error) showNotification(res.error, "error");
       else showNotification("Customer account deleted successfully.", "success");
@@ -222,7 +222,7 @@ window.handleViewReceipt = (txId) => {
    const tx = window.allTransactions.find(t => t.id === txId);
    if (!tx) return;
    const user = window.allUsers.find(u => u.id === tx.userId);
-   
+
    document.getElementById('receiptStatus').textContent = (tx.status || 'COMPLETED').toUpperCase();
    document.getElementById('receiptStatus').className = `receipt-status-badge ${tx.status || 'completed'}`;
    document.getElementById('receiptAmount').textContent = `$${Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
@@ -231,7 +231,7 @@ window.handleViewReceipt = (txId) => {
    document.getElementById('receiptDesc').textContent = tx.description || 'System Transaction';
    document.getElementById('receiptBeneficiary').textContent = user?.fullName || 'Unknown Customer';
    document.getElementById('receiptAccount').textContent = user?.accountNumber || '----------';
-   
+
    openModal('receiptModal');
 };
 
@@ -281,11 +281,11 @@ const populateStatement = (user, transactions) => {
 const renderMastercard = (user) => {
    const container = document.getElementById('mastercardContainer');
    if (!container || !user) return;
-   
+
    const cardNum = user.accountNumber || '0000000000000000';
    // Mask card number: xxxx xxxx xxxx 1234
    const maskedNum = 'xxxx xxxx xxxx ' + cardNum.slice(-4);
-   
+
    container.innerHTML = `
       <div class="mastercard animate-float">
          <div class="card-inner">
@@ -317,10 +317,10 @@ const populateProfileView = (user) => {
    if (greeting) greeting.textContent = `Hello, ${user.fullName.split(' ')[0]}`;
    const topbarAcc = document.getElementById('topbarAccountNum');
    if (topbarAcc) topbarAcc.textContent = user.accountNumber;
-   
+
    const navAvatar = document.getElementById('navAvatarContainer');
    if (navAvatar) {
-      navAvatar.innerHTML = user.profilePicture 
+      navAvatar.innerHTML = user.profilePicture
          ? `<img src="${user.profilePicture}" class="profile-avatar" alt="User">`
          : `<div class="profile-avatar" style="background: var(--primary); color: #1a1a1a; display: flex; align-items: center; justify-content: center; font-weight: 800;">${user.fullName[0]}</div>`;
    }
@@ -337,10 +337,10 @@ const populateProfileView = (user) => {
    setField('profileViewStatus', user.status);
    setField('profileViewPhone', user.phoneNumber);
    setField('profileViewDob', user.dob);
-   
+
    const addrEl = document.getElementById('profileViewAddress');
    if (addrEl) {
-      addrEl.innerHTML = user.address 
+      addrEl.innerHTML = user.address
          ? `${user.address}<br>${user.city || ''}, ${user.state || ''} ${user.zip || ''}`
          : 'No address on file';
    }
@@ -351,7 +351,7 @@ const populateProfileView = (user) => {
 const renderAvatar = (user, containerId) => {
    const container = document.getElementById(containerId);
    if (!container) return;
-   container.innerHTML = user.profilePicture 
+   container.innerHTML = user.profilePicture
       ? `<img src="${user.profilePicture}" class="profile-avatar" alt="Avatar">`
       : `<div class="profile-avatar" style="background: var(--primary); color: #1a1a1a; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 2rem;">${user.fullName[0]}</div>`;
 };
@@ -410,6 +410,19 @@ const attachEventListeners = async (path) => {
          document.getElementById('tab-transfer').style.display = 'none';
       }
 
+      // Profile Completion Warning
+      const profileAlert = document.getElementById('profileAlertContainer');
+      if (profileAlert) {
+         if (!user.dob || !user.phoneNumber || !user.address) {
+            profileAlert.innerHTML = `<div class="alert" style="background: rgba(234, 179, 8, 0.1); border-left: 4px solid #eab308; color: #eab308; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.8rem;">
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+               <strong>Action Required:</strong> Please complete your profile information to gain full access to all banking features.
+            </div>`;
+         } else {
+            profileAlert.innerHTML = '';
+         }
+      }
+
       // Subscriptions
       profileUnsubscribe = subscribeToProfile(currentUser.uid, (data) => {
          document.querySelectorAll('.sync-balance').forEach(el => el.textContent = parseFloat(data.balance).toLocaleString('en-US', { minimumFractionDigits: 2 }));
@@ -464,7 +477,7 @@ const attachEventListeners = async (path) => {
          const bank = document.getElementById('transferBankName').value || 'Nova Bank';
          const otpRes = await generateTransactionOTP(currentUser.uid);
          if (otpRes.error) return showNotification("OTP Error", "error");
-         
+
          const expiryTime = new Date(Date.now() + 15 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
          await sendEmail("template_2h8yapk", {
             to_email: currentUser.email,
@@ -486,10 +499,10 @@ const attachEventListeners = async (path) => {
          if (res.error) showNotification(res.error, "error");
          else {
             const txRes = await createTransaction(window.pendingTransfer.uid, window.pendingTransfer.amount, window.pendingTransfer.account, window.pendingTransfer.description, window.pendingTransfer.type);
-            if (txRes.error) showNotification(txRes.error, "error"); 
-            else { 
+            if (txRes.error) showNotification(txRes.error, "error");
+            else {
                showNotification("Transfer Successful!", "success");
-               setTimeout(() => window.location.reload(), 2000); 
+               setTimeout(() => window.location.reload(), 2000);
             }
          }
       });
@@ -519,6 +532,52 @@ const attachEventListeners = async (path) => {
          if (res.error) showNotification(res.error, "error");
          else showNotification("Password updated successfully!", "success");
       });
+
+      // Edit Profile Modal
+      document.getElementById('triggerEditProfile')?.addEventListener('click', () => {
+         document.getElementById('userEditDob').value = user.dob || '';
+         document.getElementById('userEditPhone').value = user.phoneNumber || '';
+         document.getElementById('userEditSsn').value = user.ssn || '';
+         document.getElementById('userEditAddress').value = user.address || '';
+         document.getElementById('userEditCity').value = user.city || '';
+         document.getElementById('userEditState').value = user.state || '';
+         document.getElementById('userEditZip').value = user.zip || '';
+         openModal('userProfileModal');
+      });
+
+      document.getElementById('closeUserProfileModal')?.addEventListener('click', () => {
+         closeModals();
+      });
+
+      document.getElementById('userProfileForm')?.addEventListener('submit', async (e) => {
+         e.preventDefault();
+         const btn = document.getElementById('saveUserProfileBtn');
+         const msg = document.getElementById('userProfileMessage');
+         btn.disabled = true;
+
+         const data = {
+            dob: document.getElementById('userEditDob').value,
+            phoneNumber: document.getElementById('userEditPhone').value,
+            ssn: document.getElementById('userEditSsn').value,
+            address: document.getElementById('userEditAddress').value,
+            city: document.getElementById('userEditCity').value,
+            state: document.getElementById('userEditState').value,
+            zip: document.getElementById('userEditZip').value
+         };
+
+         const res = await updateUserProfile(currentUser.uid, data);
+         btn.disabled = false;
+
+         if (res.error) {
+            msg.textContent = res.error;
+            msg.style.display = 'block';
+            msg.style.color = 'var(--danger)';
+         } else {
+            showNotification("Profile updated successfully!", "success");
+            closeModals();
+            setTimeout(() => window.location.reload(), 1000);
+         }
+      });
    }
 
    if (path === '/admin') {
@@ -532,7 +591,7 @@ const attachEventListeners = async (path) => {
          const btn = document.getElementById('confirmCreateBtn');
          const msg = document.getElementById('createUserMsg');
          btn.disabled = true;
-         
+
          const email = document.getElementById('createEmail').value;
          const pass = document.getElementById('createPassword').value;
          const name = document.getElementById('createFullName').value;
@@ -569,7 +628,7 @@ const attachEventListeners = async (path) => {
             isVerified: document.getElementById('editVerified').value === 'true',
             status: document.getElementById('editStatus').value
          };
-         
+
          const res = await adminUpdateUserProfile(uid, data);
          if (res.error) showNotification(res.error, "error");
          else {
@@ -583,7 +642,7 @@ const attachEventListeners = async (path) => {
          const amount = document.getElementById('modalAmount').value;
          const type = document.getElementById('modalType').value;
          const desc = document.getElementById('modalDescription').value;
-         
+
          const res = await adminUpdateBalance(uid, amount, type, desc);
          if (res.error) showNotification(res.error, "error");
          else {
@@ -622,7 +681,7 @@ const attachEventListeners = async (path) => {
          const term = e.target.value.toLowerCase();
          const activeTab = document.querySelector('.tab-content.active');
          if (!activeTab) return;
-         
+
          const rows = activeTab.querySelectorAll('tbody tr');
          rows.forEach(row => {
             const text = row.textContent.toLowerCase();
@@ -642,7 +701,7 @@ const attachEventListeners = async (path) => {
       adminUsersUnsub = subscribeToAllUsers((users) => {
          window.allUsers = users;
          document.getElementById('totalUsersCount').textContent = users.length;
-         
+
          const tbody = document.getElementById('usersTableBody');
          if (tbody) tbody.innerHTML = users.map(u => `
             <tr>
@@ -777,7 +836,7 @@ const attachEventListeners = async (path) => {
          const confirm = document.getElementById('confirmPassword').value;
 
          if (pass !== confirm) { err.textContent = "Passwords do not match"; err.style.display = 'block'; return; }
-         
+
          btn.disabled = true;
          const res = await registerUser(email, pass);
          if (res.error) { err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; }
@@ -809,12 +868,12 @@ subscribeToAuthChanges(async (user) => {
       globalProfileUnsub = subscribeToProfile(user.uid, (profile) => {
          globalProfileData = profile;
          window.currentUserProfile = profile;
-         
+
          // Statement Data Sync
          if (window.userTransactions) {
             populateStatement(profile, window.userTransactions);
          }
-         
+
          router();
       });
    } else {

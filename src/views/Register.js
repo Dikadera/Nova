@@ -36,7 +36,7 @@ export const RegisterView = () => {
         <div style="text-align: center; margin-top: 1.5rem; font-size: 0.875rem;">
           <p class="text-muted">Already have an account? <a href="/login" data-link style="color: var(--primary); text-decoration: none;">Sign in</a></p>
         </div>
-      </div>
     </div>
   `;
 };
+
