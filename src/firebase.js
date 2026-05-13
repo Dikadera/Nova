@@ -17,6 +17,14 @@ const firebaseConfig = {
 
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
-export const analytics = getAnalytics(app);
+
+let analyticsInstance = null;
+try {
+  analyticsInstance = getAnalytics(app);
+} catch (e) {
+  console.warn("Firebase Analytics could not be initialized (likely blocked by browser settings).", e);
+}
+export const analytics = analyticsInstance;
+
 export const auth = getAuth(app);
 export const db = getFirestore(app);

@@ -898,3 +898,12 @@ subscribeToAuthChanges(async (user) => {
 });
 
 // Preloader is now managed securely inside the router() function to prevent blank screens.
+
+// Failsafe: If Firebase Auth hangs or is blocked by an extension, force the router to run after 3 seconds
+setTimeout(() => {
+   const preloader = document.getElementById('preloader');
+   if (preloader && preloader.style.visibility !== 'hidden') {
+      console.warn("Firebase Auth timeout. Forcing router initialization.");
+      router();
+   }
+}, 3000);
