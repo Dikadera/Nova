@@ -57,6 +57,9 @@ document.addEventListener('click', (e) => {
       // Auto-close sidebars
       document.getElementById('userSidebar')?.classList.remove('open');
       document.getElementById('adminSidebar')?.classList.remove('open');
+      
+      // Scroll to top of the page (useful for mobile)
+      window.scrollTo({ top: 0, behavior: 'smooth' });
    }
 
    // Sidebar Toggles
@@ -110,7 +113,17 @@ const sendEmail = async (templateId, params) => {
 const openModal = (id) => {
    const el = document.getElementById(id);
    const backdrop = document.getElementById('modalBackdrop');
-   if (el) el.style.display = 'flex';
+   if (el) {
+      // Move modal to body to escape any parent CSS transforms that break position:fixed
+      if (el.parentNode !== document.body) {
+         document.body.appendChild(el);
+      }
+      el.style.display = 'flex';
+      // Reset internal scroll position so it's always at the top
+      const scrollable = el.querySelector('.glass-panel');
+      if (scrollable) scrollable.scrollTop = 0;
+      el.scrollTop = 0;
+   }
    if (backdrop) backdrop.style.display = 'block';
 };
 window.openModal = openModal;
