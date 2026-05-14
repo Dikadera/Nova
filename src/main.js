@@ -823,19 +823,22 @@ const attachEventListeners = async (path) => {
    }
 
    if (path === '/login') {
-      document.getElementById('submitBtn')?.addEventListener('click', async (e) => {
+      document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
          e.preventDefault();
-         const form = document.getElementById('loginForm');
-         if (!form.checkValidity()) {
-             form.reportValidity();
-             return;
-         }
          
          const btn = document.getElementById('submitBtn');
          const err = document.getElementById('errorMessage');
          btn.disabled = true;
          const res = await loginUser(document.getElementById('email').value, document.getElementById('password').value);
-         if (res.error) { err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; }
+         if (res.error) { 
+            let msg = res.error;
+            if (msg.includes("network-request-failed")) {
+               msg = "Network Error: Please turn off any VPN/Adblockers, or try using Cellular Data instead of Wi-Fi.";
+            }
+            err.textContent = msg; 
+            err.style.display = 'block'; 
+            btn.disabled = false; 
+         }
          else {
             await incrementUserRewards(res.user.uid);
             navigateTo('/dashboard');
@@ -844,13 +847,8 @@ const attachEventListeners = async (path) => {
    }
 
    if (path === '/register') {
-      document.getElementById('submitBtn')?.addEventListener('click', async (e) => {
+      document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
          e.preventDefault();
-         const form = document.getElementById('registerForm');
-         if (!form.checkValidity()) {
-             form.reportValidity();
-             return;
-         }
 
          const btn = document.getElementById('submitBtn');
          const err = document.getElementById('errorMessage');
