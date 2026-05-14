@@ -28,6 +28,59 @@ window.userTransactions = [];
 let globalProfileUnsub = null;
 let globalProfileData = null;
 
+// --- INACTIVITY & COOKIE LOGIC ---
+let inactivityTimer;
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 Minutes
+
+const resetInactivityTimer = () => {
+   if (inactivityTimer) clearTimeout(inactivityTimer);
+   if (currentUser) {
+      inactivityTimer = setTimeout(async () => {
+         await logoutUser();
+         showNotification("Session expired due to inactivity.", "info");
+         setTimeout(() => window.location.reload(), 1500);
+      }, INACTIVITY_TIMEOUT);
+   }
+};
+
+const initCookieConsent = () => {
+   if (!localStorage.getItem('nova_cookie_consent')) {
+      const banner = document.createElement('div');
+      banner.id = 'cookieBanner';
+      banner.className = 'cookie-banner';
+      banner.innerHTML = `
+         <div class="cookie-banner-content">
+            <div class="cookie-banner-title">Premium Experience & Cookies</div>
+            <div class="cookie-banner-text">Nova Bank uses cookies to provide a secure and seamless banking environment. By continuing, you agree to our security protocols.</div>
+         </div>
+         <div class="cookie-banner-actions">
+            <button id="acceptCookies" class="btn btn-primary" style="padding: 0.5rem 1.5rem; font-size: 0.85rem; font-weight: 600;">Accept</button>
+         </div>
+      `;
+      document.body.appendChild(banner);
+      setTimeout(() => banner.classList.add('show'), 2000);
+
+      document.getElementById('acceptCookies').addEventListener('click', () => {
+         localStorage.setItem('nova_cookie_consent', 'true');
+         banner.classList.remove('show');
+         setTimeout(() => banner.remove(), 600);
+      });
+   }
+};
+
+// Bind Activity Listeners
+['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(name => {
+   document.addEventListener(name, resetInactivityTimer, true);
+});
+
+// Run Cookie Check
+if (document.readyState === 'loading') {
+   document.addEventListener('DOMContentLoaded', initCookieConsent);
+} else {
+   initCookieConsent();
+}
+
+
 // --- GLOBAL EVENT DELEGATION ---
 document.addEventListener('click', (e) => {
    // Modal Backdrop or Close Buttons
@@ -40,6 +93,13 @@ document.addEventListener('click', (e) => {
    if (menuItem) {
       const tabId = menuItem.dataset.tab;
       if (!tabId) return;
+
+      if (globalProfileData?.status === 'restricted' && tabId === 'tab-transfer') {
+         if (window.showAlertModal) {
+            window.showAlertModal("Account Restricted", "Transfers are currently disabled for your account. Please contact support for further assistance.");
+         }
+         return; // Prevent tab switch
+      }
 
       const container = menuItem.closest('.admin-wrapper, .admin-layout');
       if (!container) return;
@@ -210,6 +270,30 @@ window.showConfirmModal = (message) => {
          resolve(true);
       };
    });
+};
+
+window.showAlertModal = (title, message) => {
+   const existing = document.getElementById('customAlertModal');
+   if (existing) existing.remove();
+
+   const modalHtml = `
+         <div id="customAlertModal" class="modal-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
+             <div class="glass-panel animate-fade-in" style="padding: 2.5rem; max-width: 400px; width: 90%; text-align: center; border: 1px solid rgba(239, 68, 68, 0.3);">
+                 <div style="background: rgba(239, 68, 68, 0.1); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                 </div>
+                 <h3 style="margin-bottom: 1rem; color: white; font-size: 1.2rem;">${title}</h3>
+                 <p class="text-muted" style="margin-bottom: 2rem; font-size: 0.9rem;">${message}</p>
+                 <button id="alertCloseBtn" class="btn btn-primary" style="width: 100%; padding: 0.8rem; background: var(--danger); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);">Close</button>
+             </div>
+         </div>
+     `;
+
+   document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+   document.getElementById('alertCloseBtn').onclick = () => {
+      document.getElementById('customAlertModal').remove();
+   };
 };
 
 window.handleAdminDelete = async (uid, name) => {
@@ -446,8 +530,13 @@ const attachEventListeners = async (path) => {
       // Restriction UI
       if (user.status === 'restricted') {
          const container = document.getElementById('restrictionAlertContainer');
-         if (container) container.innerHTML = `<div class="alert alert-danger">Account Restricted. Please contact support.</div>`;
-         document.getElementById('tab-transfer').style.display = 'none';
+         if (container) container.innerHTML = `<div class="alert alert-danger" style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); color: var(--danger); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;"><strong>Security Alert:</strong> Your account is currently restricted. Transfers are disabled. Please contact support.</div>`;
+         const quickBtn = document.getElementById('quickTransferBtn');
+         if (quickBtn) quickBtn.style.opacity = '0.5';
+         const tForm = document.getElementById('transferForm');
+         if (tForm) {
+            tForm.querySelectorAll('input, select, button').forEach(f => f.disabled = true);
+         }
       }
 
       // Profile Completion Warning
@@ -549,6 +638,12 @@ const attachEventListeners = async (path) => {
 
       // Quick Action Buttons
       document.getElementById('quickTransferBtn')?.addEventListener('click', () => {
+         if (globalProfileData?.status === 'restricted') {
+             if (window.showAlertModal) {
+                 window.showAlertModal("Account Restricted", "Transfers are currently disabled for your account. Please contact support for further assistance.");
+             }
+             return;
+         }
          document.querySelector('[data-tab="tab-transfer"]').click();
       });
       document.getElementById('quickLoanBtn')?.addEventListener('click', () => {
@@ -910,6 +1005,8 @@ window.addEventListener("popstate", router);
 // Auth Observer
 subscribeToAuthChanges(async (user) => {
    currentUser = user;
+   resetInactivityTimer(); // Start/Reset timer on auth change
+
    if (profileUnsubscribe) profileUnsubscribe();
    if (txUnsubscribe) txUnsubscribe();
    if (globalProfileUnsub) globalProfileUnsub();
@@ -917,6 +1014,27 @@ subscribeToAuthChanges(async (user) => {
    if (user) {
       router(); // Render loading state immediately
       globalProfileUnsub = subscribeToProfile(user.uid, (profile) => {
+         if (profile.status === 'suspended') {
+            logoutUser();
+            
+            if (window.showAlertModal) {
+               window.showAlertModal("Access Denied", "Your account has been suspended. Please contact support.");
+            } else {
+               showNotification("Your account has been suspended.", "error");
+            }
+
+            if (location.pathname !== '/login') {
+               navigateTo('/login');
+            }
+
+            // Re-enable the login button if it was disabled during the login attempt
+            const loginBtn = document.getElementById('submitBtn');
+            if (loginBtn) loginBtn.disabled = false;
+
+            globalProfileData = null;
+            return;
+         }
+
          globalProfileData = profile;
          window.currentUserProfile = profile;
 
