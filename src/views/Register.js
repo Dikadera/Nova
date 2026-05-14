@@ -30,7 +30,7 @@ export const RegisterView = () => {
             <input type="password" id="confirmPassword" class="form-control" required placeholder="Repeat password">
           </div>
           <div id="errorMessage" class="text-danger" style="margin-bottom: 1rem; font-size: 0.875rem; display: none;"></div>
-          <button type="button" class="btn btn-primary" style="width: 100%;" id="submitBtn">Create Account</button>
+          <button type="submit" class="btn btn-primary" style="width: 100%;" id="submitBtn">Create Account</button>
         </form>
         
         <div style="text-align: center; margin-top: 1.5rem; font-size: 0.875rem;">

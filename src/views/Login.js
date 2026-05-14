@@ -22,7 +22,7 @@ export const LoginView = () => {
             <input type="password" id="password" class="form-control" required placeholder="••••••••">
           </div>
           <div id="errorMessage" class="text-danger" style="margin-bottom: 1rem; font-size: 0.875rem; display: none;"></div>
-          <button type="button" class="btn btn-primary" style="width: 100%;" id="submitBtn">Sign In</button>
+          <button type="submit" class="btn btn-primary" style="width: 100%;" id="submitBtn">Sign In</button>
         </form>
         
         <div style="text-align: center; margin-top: 1.5rem; font-size: 0.875rem;">
