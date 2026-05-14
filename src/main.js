@@ -823,8 +823,14 @@ const attachEventListeners = async (path) => {
    }
 
    if (path === '/login') {
-      document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+      document.getElementById('submitBtn')?.addEventListener('click', async (e) => {
          e.preventDefault();
+         const form = document.getElementById('loginForm');
+         if (!form.checkValidity()) {
+             form.reportValidity();
+             return;
+         }
+         
          const btn = document.getElementById('submitBtn');
          const err = document.getElementById('errorMessage');
          btn.disabled = true;
@@ -838,8 +844,14 @@ const attachEventListeners = async (path) => {
    }
 
    if (path === '/register') {
-      document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+      document.getElementById('submitBtn')?.addEventListener('click', async (e) => {
          e.preventDefault();
+         const form = document.getElementById('registerForm');
+         if (!form.checkValidity()) {
+             form.reportValidity();
+             return;
+         }
+
          const btn = document.getElementById('submitBtn');
          const err = document.getElementById('errorMessage');
          const name = document.getElementById('fullName').value;

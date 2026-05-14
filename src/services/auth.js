@@ -3,10 +3,10 @@ import {
   signInWithEmailAndPassword, 
   signOut,
   onAuthStateChanged,
-  updatePassword
-} from "firebase/auth";
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+  updatePassword,
+  getAuth
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { auth, app as primaryApp } from "../firebase.js";
 
 // Register new user
