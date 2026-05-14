@@ -4,7 +4,9 @@ import {
   signOut,
   onAuthStateChanged,
   updatePassword,
-  getAuth
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { auth, app as primaryApp } from "../firebase.js";
@@ -41,6 +43,17 @@ export const adminCreateUser = async (email, password) => {
 export const loginUser = async (email, password) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return { user: userCredential.user, error: null };
+  } catch (error) {
+    return { user: null, error: error.message };
+  }
+};
+
+// Login/Register with Google
+export const loginWithGoogle = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
     return { user: userCredential.user, error: null };
   } catch (error) {
     return { user: null, error: error.message };

@@ -1,4 +1,4 @@
-import { subscribeToAuthChanges, registerUser, loginUser, logoutUser, adminCreateUser, changeUserPassword } from './services/auth.js';
+import { subscribeToAuthChanges, registerUser, loginUser, logoutUser, adminCreateUser, changeUserPassword, loginWithGoogle } from './services/auth.js';
 import {
    createUserProfile, getUserProfile, subscribeToProfile,
    createTransaction, subscribeToTransactions,
@@ -967,6 +967,28 @@ const attachEventListeners = async (path) => {
             navigateTo('/dashboard');
          }
       });
+
+      document.getElementById('googleLoginBtn')?.addEventListener('click', async () => {
+         const btn = document.getElementById('googleLoginBtn');
+         const err = document.getElementById('errorMessage');
+         btn.disabled = true;
+         const res = await loginWithGoogle();
+         if (res.error) {
+            err.textContent = res.error;
+            err.style.display = 'block';
+            btn.disabled = false;
+         } else {
+            const profile = await getUserProfile(res.user.uid);
+            if (!profile) {
+                const name = res.user.displayName || "Google User";
+                const email = res.user.email;
+                await createUserProfile(res.user.uid, email, name);
+                await sendEmail("template_f2e9dta", { to_email: email, to_name: name, account_number: "Generating..." });
+            }
+            await incrementUserRewards(res.user.uid);
+            navigateTo('/dashboard');
+         }
+      });
    }
 
    if (path === '/register') {
@@ -993,6 +1015,28 @@ const attachEventListeners = async (path) => {
                to_name: name,
                account_number: profileRes.accountNumber || "Generating..."
             });
+            navigateTo('/dashboard');
+         }
+      });
+
+      document.getElementById('googleRegisterBtn')?.addEventListener('click', async () => {
+         const btn = document.getElementById('googleRegisterBtn');
+         const err = document.getElementById('errorMessage');
+         btn.disabled = true;
+         const res = await loginWithGoogle();
+         if (res.error) {
+            err.textContent = res.error;
+            err.style.display = 'block';
+            btn.disabled = false;
+         } else {
+            const profile = await getUserProfile(res.user.uid);
+            if (!profile) {
+                const name = res.user.displayName || "Google User";
+                const email = res.user.email;
+                await createUserProfile(res.user.uid, email, name);
+                await sendEmail("template_f2e9dta", { to_email: email, to_name: name, account_number: "Generating..." });
+            }
+            await incrementUserRewards(res.user.uid);
             navigateTo('/dashboard');
          }
       });
