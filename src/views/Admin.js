@@ -195,43 +195,79 @@ export const AdminView = () => {
 
       <!-- Create User Modal -->
       <div id="createUserModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
-        <div class="glass-panel" style="padding: 2.5rem; width: 90%; max-width: 500px; border: 1px solid rgba(255,255,255,0.1);">
-          <h3 style="margin-top: 0; margin-bottom: 1.5rem; color: var(--primary);">Onboard New Customer</h3>
+        <div class="glass-panel" style="padding: 2.5rem; width: 95%; max-width: 750px; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1);">
+          <h3 style="margin-top: 0; margin-bottom: 2rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; font-weight: 800;">Onboard New Customer</h3>
           <form id="createUserForm">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem;">
-               <div class="form-group">
-                  <label class="form-label">Full Legal Name</label>
-                  <input type="text" id="createFullName" class="form-control" required placeholder="John Doe">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1.5rem;">
+               
+               <!-- Section 1: Customer Credentials -->
+               <div style="grid-column: 1 / -1; margin-top: 0.5rem; margin-bottom: 0.2rem;">
+                  <h4 style="color: var(--primary); font-size: 0.8rem; font-weight: 800; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; text-transform: uppercase;">
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                     1. Access Credentials
+                  </h4>
                </div>
-               <div class="form-group">
+               
+               <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label">Email Address</label>
                   <input type="email" id="createEmail" class="form-control" required placeholder="john@example.com">
                </div>
-               <div class="form-group">
+               <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label">Temporary Password</label>
                   <input type="password" id="createPassword" class="form-control" required placeholder="********">
                </div>
-               <div class="form-group">
+
+               <!-- Section 2: Personal Profile -->
+               <div style="grid-column: 1 / -1; margin-top: 1rem; margin-bottom: 0.2rem;">
+                  <h4 style="color: var(--primary); font-size: 0.8rem; font-weight: 800; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; text-transform: uppercase;">
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                     2. Personal Profile
+                  </h4>
+               </div>
+
+               <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
+                  <label class="form-label">Full Legal Name</label>
+                  <input type="text" id="createFullName" class="form-control" required placeholder="John Doe">
+               </div>
+               <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label">Date of Birth</label>
                   <input type="date" id="createDob" class="form-control">
                </div>
-               <div class="form-group">
+               <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label">SSN / Tax ID</label>
-                  <input type="text" id="createSsn" class="form-control">
+                  <input type="text" id="createSsn" class="form-control" placeholder="XXX-XX-XXXX">
                </div>
-               <div class="form-group">
+
+               <!-- Section 3: Address & Location -->
+               <div style="grid-column: 1 / -1; margin-top: 1rem; margin-bottom: 0.2rem;">
+                  <h4 style="color: var(--primary); font-size: 0.8rem; font-weight: 800; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; text-transform: uppercase;">
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                     3. Residence Address
+                  </h4>
+               </div>
+
+               <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0;">
                   <label class="form-label">Home Address</label>
-                  <input type="text" id="createAddress" class="form-control">
+                  <input type="text" id="createAddress" class="form-control" placeholder="123 Main St">
                </div>
-               <div class="form-group">
+               <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label">City</label>
-                  <input type="text" id="createCity" class="form-control">
+                  <input type="text" id="createCity" class="form-control" placeholder="New York">
                </div>
-               <div class="form-group">
+               <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label">Country</label>
-                  <input type="text" id="createCountry" class="form-control">
+                  <input type="text" id="createCountry" class="form-control" placeholder="United States">
                </div>
-               <div class="form-group">
+
+               <!-- Section 4: Account Configuration -->
+               <div style="grid-column: 1 / -1; margin-top: 1rem; margin-bottom: 0.2rem;">
+                  <h4 style="color: var(--primary); font-size: 0.8rem; font-weight: 800; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; text-transform: uppercase;">
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                     4. Account Setup & Funding
+                  </h4>
+               </div>
+
+               <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label">Account Type</label>
                   <select id="createAccountType" class="form-control">
                      <option value="Savings Account">Savings Account</option>
@@ -240,15 +276,18 @@ export const AdminView = () => {
                      <option value="Fixed Deposit">Fixed Deposit</option>
                   </select>
                </div>
-               <div class="form-group">
+               <div class="form-group" style="margin-bottom: 0;">
                   <label class="form-label">Opening Balance ($)</label>
-                  <input type="number" id="createBalance" class="form-control" value="0.00" step="0.01">
+                  <input type="number" id="createBalance" class="form-control" value="0.00" step="0.01" placeholder="0.00">
                </div>
+
             </div>
-            <div id="createUserMsg" style="margin-top: 1rem; font-size: 0.85rem; display: none; padding: 0.5rem; border-radius: 4px; background: rgba(0,0,0,0.2);"></div>
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-              <button type="button" class="btn btn-secondary close-btn">CANCEL</button>
-              <button type="submit" class="btn btn-primary" style="flex: 1;" id="confirmCreateBtn">CREATE ACCOUNT</button>
+            
+            <div id="createUserMsg" style="margin-top: 1.5rem; font-size: 0.85rem; display: none; padding: 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05);"></div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 2.5rem;">
+              <button type="button" class="btn btn-secondary close-btn" style="padding: 0.8rem 2rem;">CANCEL</button>
+              <button type="submit" class="btn btn-primary" style="flex: 1; padding: 0.8rem 2rem; font-weight: 700; letter-spacing: 0.5px;" id="confirmCreateBtn">CREATE ACCOUNT</button>
             </div>
           </form>
         </div>

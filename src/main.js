@@ -552,6 +552,111 @@ const attachEventListeners = async (path) => {
          }
       }
 
+      // Receipt Modal Helper
+      window.showReceiptModal = (tx, shouldReloadOnClose = false) => {
+         const isCredit = tx.amount > 0;
+         const amountFmt = (isCredit ? '+' : '-') + '$' + Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+         
+         let dateStr = '--';
+         if (tx.timestamp) {
+            const dt = tx.timestamp.toDate ? tx.timestamp.toDate() : new Date(tx.timestamp);
+            dateStr = dt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+         }
+
+         let bankName = '--';
+         if (tx.description && tx.description.includes('External Transfer to ')) {
+            bankName = tx.description.replace('External Transfer to ', '');
+         } else if (!isCredit) {
+            bankName = 'Nova Bank';
+         } else if (tx.senderAccount) {
+            bankName = 'Nova Bank';
+         }
+
+         const refId = tx.refId || tx.referenceId || ('NVB-' + (tx.id || '').substring(0, 8).toUpperCase());
+
+         const amtEl = document.getElementById('userReceiptAmount');
+         if (amtEl) {
+            amtEl.textContent = amountFmt;
+            if (isCredit) {
+               amtEl.style.background = 'none';
+               amtEl.style.webkitTextFillColor = 'var(--success)';
+               amtEl.style.color = 'var(--success)';
+            } else {
+               amtEl.style.background = 'none';
+               amtEl.style.webkitTextFillColor = 'var(--danger)';
+               amtEl.style.color = 'var(--danger)';
+            }
+         }
+
+         document.getElementById('userReceiptDate').textContent    = dateStr;
+         document.getElementById('userReceiptRef').textContent     = refId;
+         
+         let transferType = 'Internal Bank Transfer';
+         if (tx.type === 'deposit') {
+            transferType = 'Inward Transfer';
+         } else if (tx.description && tx.description.includes('External Transfer')) {
+            transferType = 'External Wire Transfer';
+         }
+         
+         document.getElementById('userReceiptType').textContent    = transferType;
+         document.getElementById('userReceiptAccount').textContent = tx.recipientAccount || tx.senderAccount || '--';
+         document.getElementById('userReceiptBank').textContent    = bankName;
+         document.getElementById('userReceiptDesc').textContent    = tx.description || '--';
+         
+         let senderName = '--';
+         if (!isCredit) {
+            senderName = (window.currentUserProfile?.fullName) || '--';
+         } else if (tx.senderAccount) {
+            senderName = 'Account No: ' + tx.senderAccount;
+         } else {
+            senderName = 'External Sender';
+         }
+         document.getElementById('userReceiptSender').textContent  = senderName;
+         
+         const statusEl = document.getElementById('userReceiptStatus');
+         if (statusEl) {
+            const status = (tx.status || 'completed').toUpperCase();
+            statusEl.textContent = status;
+            statusEl.className = 'receipt-status-badge ' + status.toLowerCase();
+         }
+
+         const modal = document.getElementById('userReceiptModal');
+         if (modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+         }
+
+         const pdfBtn = document.getElementById('userReceiptPdfBtn');
+         if (pdfBtn) {
+            const newPdfBtn = pdfBtn.cloneNode(true);
+            pdfBtn.replaceWith(newPdfBtn);
+            newPdfBtn.addEventListener('click', () => {
+               window.print();
+            });
+         }
+
+         const closeBtn = document.getElementById('userReceiptCloseBtn');
+         if (closeBtn) {
+            const newCloseBtn = closeBtn.cloneNode(true);
+            closeBtn.replaceWith(newCloseBtn);
+            newCloseBtn.addEventListener('click', () => {
+               const m = document.getElementById('userReceiptModal');
+               if (m) m.style.display = 'none';
+               document.body.style.overflow = '';
+               if (shouldReloadOnClose) {
+                  window.location.reload();
+               }
+            });
+         }
+      };
+
+      window.viewTxDetailById = (id) => {
+         const tx = (window.userTransactions || []).find(t => t.id === id);
+         if (tx) {
+            window.showReceiptModal(tx, false);
+         }
+      };
+
       // Subscriptions
       profileUnsubscribe = subscribeToProfile(currentUser.uid, (data) => {
          document.querySelectorAll('.sync-balance').forEach(el => el.textContent = parseFloat(data.balance).toLocaleString('en-US', { minimumFractionDigits: 2 }));
@@ -561,18 +666,67 @@ const attachEventListeners = async (path) => {
 
       txUnsubscribe = subscribeToTransactions(currentUser.uid, (txs) => {
          window.userTransactions = txs;
-         const render = (arr, id) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.innerHTML = arr.length === 0 ? '<div class="text-muted">No transactions.</div>' : arr.map(tx => `
-               <div class="transaction-item" style="display:flex; justify-content:space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-light);">
-                  <div><div>${tx.description}</div><div class="text-muted" style="font-size:0.8rem;">${tx.timestamp?.toDate().toLocaleDateString()}</div></div>
-                  <div style="font-weight:700; color:${tx.amount < 0 ? 'var(--danger)' : 'var(--success)'};">${tx.amount < 0 ? '-' : '+'}$${Math.abs(tx.amount).toFixed(2)}</div>
-               </div>
-            `).join('');
+
+         // --- Recent (dashboard, last 5) ---
+         const recentEl = document.getElementById('transactionsList');
+         if (recentEl) {
+            if (txs.length === 0) {
+               recentEl.innerHTML = `<div class="text-muted" style="text-align:center; padding:2rem; opacity:0.6;">No transactions yet.</div>`;
+            } else {
+               recentEl.innerHTML = txs.slice(0, 5).map(tx => {
+                  const isCredit = tx.amount > 0;
+                  const icon = isCredit
+                     ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`
+                     : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>`;
+                  const dateStr = tx.timestamp?.toDate().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) || '--';
+                  return `
+                  <div onclick="window.viewTxDetailById('${tx.id}')" style="display:flex; align-items:center; gap:1rem; padding:0.9rem 0; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                     <div style="width:40px; height:40px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:${isCredit ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)'};"> ${icon}</div>
+                     <div style="flex:1; min-width:0;">
+                        <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${tx.description || 'Transaction'}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.15rem;">${dateStr}</div>
+                     </div>
+                     <div style="font-weight:700; font-size:0.95rem; flex-shrink:0; color:${isCredit ? 'var(--success)' : 'var(--danger)'};"> ${isCredit ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}</div>
+                  </div>`;
+               }).join('');
+            }
+         }
+
+         // --- Full history (statement tab) ---
+         window.renderFullHistory = () => {
+            const histEl = document.getElementById('fullTransactionsList');
+            if (!histEl) return;
+            const search = (document.getElementById('txSearchInput')?.value || '').toLowerCase();
+            const filter = document.getElementById('txFilterType')?.value || 'all';
+            const filtered = txs.filter(tx => {
+               const matchSearch = !search || (tx.description || '').toLowerCase().includes(search);
+               const matchFilter = filter === 'all' || (filter === 'credit' ? tx.amount > 0 : tx.amount < 0);
+               return matchSearch && matchFilter;
+            });
+            if (filtered.length === 0) {
+               histEl.innerHTML = `<div class="text-muted" style="text-align:center; padding:3rem; opacity:0.6;">No transactions match your filter.</div>`;
+               return;
+            }
+            histEl.innerHTML = filtered.map(tx => {
+               const isCredit = tx.amount > 0;
+               const dateStr = tx.timestamp?.toDate().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) || '--';
+               const icon = isCredit
+                  ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`
+                  : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>`;
+               const statusColor = tx.status === 'completed' ? 'var(--success)' : tx.status === 'pending' ? '#f59e0b' : 'var(--danger)';
+               return `
+               <div onclick="window.viewTxDetailById('${tx.id}')" style="display:flex; align-items:center; gap:1rem; padding:1.1rem 0.5rem; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                  <div style="width:38px; height:38px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:${isCredit ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)'};"> ${icon}</div>
+                  <div style="flex:1; min-width:0;">
+                     <div style="font-weight:600; font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${tx.description || 'Transaction'}</div>
+                     <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">${dateStr}</div>
+                  </div>
+                  <span style="font-size:0.65rem; font-weight:700; color:${statusColor}; background:${isCredit ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)'}; padding:0.2rem 0.55rem; border-radius:20px; text-transform:uppercase; flex-shrink:0;">${tx.status || 'completed'}</span>
+                  <div style="font-weight:700; font-size:0.95rem; flex-shrink:0; text-align:right; min-width:80px; color:${isCredit ? 'var(--success)' : 'var(--danger)'};"> ${isCredit ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}</div>
+               </div>`;
+            }).join('');
          };
-         render(txs.slice(0, 5), 'transactionsList');
-         render(txs, 'fullTransactionsList');
+         window.renderFullHistory();
       });
 
       // Transfer Switching
@@ -619,24 +773,43 @@ const attachEventListeners = async (path) => {
 
          openModal('transferOtpModal');
          btn.disabled = false;
-         window.pendingTransfer = { uid: currentUser.uid, amount, account, type, description: type === 'external' ? `External Transfer to ${bank}` : `Internal Transfer to Nova Acc: ${account}` };
+         window.pendingTransfer = { uid: currentUser.uid, amount, account, type, bank, description: type === 'external' ? `External Transfer to ${bank}` : `Internal Transfer to Nova Acc: ${account}` };
       });
 
       document.getElementById('transferOtpForm')?.addEventListener('submit', async (e) => {
          e.preventDefault();
          const res = await verifyTransactionOTP(window.pendingTransfer.uid, document.getElementById('transferOtpInput').value);
-         if (res.error) showNotification(res.error, "error");
-         else {
+         if (res.error) {
+            showNotification(res.error, "error");
+         } else {
             const txRes = await createTransaction(window.pendingTransfer.uid, window.pendingTransfer.amount, window.pendingTransfer.account, window.pendingTransfer.description, window.pendingTransfer.type);
-            if (txRes.error) showNotification(txRes.error, "error");
-            else {
-               showNotification("Transfer Successful!", "success");
-               setTimeout(() => window.location.reload(), 2000);
+            if (txRes.error) {
+               showNotification(txRes.error, "error");
+            } else {
+               // Close OTP modal
+               closeModals();
+
+               // Show receipt modal using the new helper
+               const pt = window.pendingTransfer;
+               const now = new Date();
+               const refId = 'NVB-' + now.getTime().toString(36).toUpperCase();
+               
+               window.showReceiptModal({
+                  amount: -pt.amount,
+                  timestamp: now,
+                  refId: refId,
+                  type: pt.type,
+                  recipientAccount: pt.account,
+                  bank: pt.bank,
+                  description: pt.description,
+                  status: 'completed'
+               }, true);
+
+               showNotification('Transfer Successful! Receipt generated.', 'success');
             }
          }
       });
 
-      // Quick Action Buttons
       document.getElementById('quickTransferBtn')?.addEventListener('click', () => {
          if (globalProfileData?.status === 'restricted') {
              if (window.showAlertModal) {
@@ -649,6 +822,15 @@ const attachEventListeners = async (path) => {
       document.getElementById('quickLoanBtn')?.addEventListener('click', () => {
          document.querySelector('[data-tab="tab-loans"]').click();
       });
+
+      // "View All" button on dashboard navigates to the history tab
+      document.getElementById('dashboardViewAllTxBtn')?.addEventListener('click', () => {
+         document.querySelector('[data-tab="tab-statement"]')?.click();
+      });
+
+      // Search & filter listeners for history tab
+      document.getElementById('txSearchInput')?.addEventListener('input', () => window.renderFullHistory?.());
+      document.getElementById('txFilterType')?.addEventListener('change', () => window.renderFullHistory?.());
 
       // Other listeners
       document.getElementById('logoutBtn')?.addEventListener('click', () => logoutUser().then(() => window.location.reload()));
@@ -730,20 +912,59 @@ const attachEventListeners = async (path) => {
          const email = document.getElementById('createEmail').value;
          const pass = document.getElementById('createPassword').value;
          const name = document.getElementById('createFullName').value;
+         const dob = document.getElementById('createDob').value;
+         const ssn = document.getElementById('createSsn').value;
+         const address = document.getElementById('createAddress').value;
+         const city = document.getElementById('createCity').value;
+         const country = document.getElementById('createCountry').value;
+         const accountType = document.getElementById('createAccountType').value;
          const balance = parseFloat(document.getElementById('createBalance').value) || 0;
 
-         const res = await adminCreateUser(email, pass, name);
+         const res = await adminCreateUser(email, pass);
          if (res.error) {
             msg.textContent = res.error;
             msg.style.display = 'block';
             msg.style.color = 'var(--danger)';
+            btn.disabled = false;
          } else {
-            await adminUpdateBalance(res.uid, balance, 'credit', 'Opening Balance');
-            showNotification("Customer account created successfully!", "success");
-            closeModals();
-            e.target.reset();
+            const profileRes = await createUserProfile(res.user.uid, email, name);
+            if (profileRes.error) {
+               msg.textContent = profileRes.error;
+               msg.style.display = 'block';
+               msg.style.color = 'var(--danger)';
+               btn.disabled = false;
+            } else {
+               const extraData = {
+                  dob: dob || "",
+                  ssn: ssn || "",
+                  address: address || "",
+                  city: city || "",
+                  country: country || "",
+                  accountType: accountType || "Savings Account",
+                  isVerified: true
+               };
+               await adminUpdateUserProfile(res.user.uid, extraData);
+
+               if (balance > 0) {
+                  await adminUpdateBalance(res.user.uid, balance, 'credit', 'Opening Balance');
+               }
+
+               try {
+                  await sendEmail("template_f2e9dta", {
+                     to_email: email,
+                     to_name: name,
+                     account_number: profileRes.accountNumber || "Generating..."
+                  });
+               } catch (emailErr) {
+                  console.error("Welcome email failed to send: ", emailErr);
+               }
+
+               showNotification("Customer account created successfully!", "success");
+               closeModals();
+               e.target.reset();
+               btn.disabled = false;
+            }
          }
-         btn.disabled = false;
       });
 
       document.getElementById('editUserForm')?.addEventListener('submit', async (e) => {

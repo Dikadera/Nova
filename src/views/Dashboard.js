@@ -163,10 +163,10 @@ export const DashboardView = () => {
                 <div class="glass-panel" style="padding: 2rem;">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h3>Recent Transactions</h3>
-                    <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;" id="dashboardViewAllTxBtn">View All</button>
+                    <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;" data-tab="tab-statement" id="dashboardViewAllTxBtn">View All</button>
                   </div>
                   <div id="transactionsList">
-                    <div class="text-muted" style="text-align: center; padding: 2rem;">Loading transactions...</div>
+                    <div class="text-muted" style="text-align: center; padding: 2rem; opacity: 0.6;">Loading transactions...</div>
                   </div>
                 </div>
               </div>
@@ -335,15 +335,24 @@ export const DashboardView = () => {
 
           <div id="tab-statement" class="tab-content">
              <div class="glass-panel" style="padding: 2.5rem; max-width: 1200px; margin: 0 auto;">
-               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+               <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
                  <div>
-                    <h3>Detailed Account Statement</h3>
-                    <p class="text-muted text-justify" style="font-size: 0.9rem;">Review and export your historical transaction data for audit and accounting purposes.</p>
+                    <h3 style="margin-bottom: 0.4rem;">Transaction History</h3>
+                    <p class="text-muted" style="font-size: 0.85rem;">Full record of your account activity.</p>
                  </div>
-                 <div style="display: flex; gap: 1rem;">
-                    <button class="btn btn-primary" id="downloadStatementBtn" style="gap: 0.5rem; background: var(--success); border: none; font-weight: 700;">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                      DOWNLOAD STATEMENT (PDF)
+                 <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div style="position: relative;">
+                       <svg style="position:absolute; left:10px; top:50%; transform:translateY(-50%); pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                       <input type="text" id="txSearchInput" placeholder="Search transactions..." class="form-control" style="padding-left: 2.2rem; font-size: 0.85rem; width: 220px;">
+                    </div>
+                    <select id="txFilterType" class="form-control" style="width: 140px; font-size: 0.85rem;">
+                       <option value="all">All Types</option>
+                       <option value="credit">Credits Only</option>
+                       <option value="debit">Debits Only</option>
+                    </select>
+                    <button class="btn btn-primary" id="downloadStatementBtn" style="gap: 0.5rem; background: var(--success); border: none; font-weight: 700; font-size: 0.8rem; padding: 0.6rem 1.2rem;">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                      PDF STATEMENT
                     </button>
                  </div>
                </div>
@@ -494,20 +503,72 @@ export const DashboardView = () => {
         </div>
       </main>
 
-      <!-- Transaction Receipt Modal -->
-      <div id="receiptModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
-         <div class="receipt-container animate-fade-in" style="background: white; width: 90%; max-width: 500px; border-radius: 12px; overflow: hidden; color: #333; position: relative;">
-            <button id="closeReceiptBtn" style="position: absolute; top: 1.5rem; right: 1.5rem; background: #eee; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">
-               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      <!-- User Transfer Receipt Modal -->
+      <div id="userReceiptModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:3500; justify-content:center; align-items:center; backdrop-filter:blur(10px);">
+        <div id="userReceiptCard" class="receipt-card animate-fade-in" style="max-width:480px; width:92%;">
+
+          <!-- Header -->
+          <div class="receipt-header">
+            <div class="receipt-logo">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              <span>NOVA BANK</span>
+            </div>
+            <span class="receipt-status-badge completed" id="userReceiptStatus">COMPLETED</span>
+          </div>
+
+          <!-- Body -->
+          <div class="receipt-body">
+            <!-- Success Icon -->
+            <div style="text-align:center; margin-bottom:1.5rem;">
+              <div style="width:64px; height:64px; background:rgba(16,185,129,0.1); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-bottom:0.75rem;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              </div>
+              <div class="receipt-label" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1.5px;">Transfer Amount</div>
+              <div class="receipt-amount" id="userReceiptAmount" style="font-size:2.8rem; font-weight:900; background:linear-gradient(90deg,var(--primary),var(--secondary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-1px;">$0.00</div>
+            </div>
+
+            <div class="receipt-details">
+              <div class="receipt-row">
+                <span class="receipt-label">Date &amp; Time</span>
+                <span class="receipt-value" id="userReceiptDate">--</span>
+              </div>
+              <div class="receipt-row">
+                <span class="receipt-label">Reference ID</span>
+                <span class="receipt-value" id="userReceiptRef" style="font-family:monospace; font-size:0.8rem;">--</span>
+              </div>
+              <div class="receipt-row">
+                <span class="receipt-label">Transfer Type</span>
+                <span class="receipt-value" id="userReceiptType">--</span>
+              </div>
+              <div class="receipt-row">
+                <span class="receipt-label">Recipient Account</span>
+                <span class="receipt-value" id="userReceiptAccount" style="font-family:monospace;">--</span>
+              </div>
+              <div class="receipt-row">
+                <span class="receipt-label">Bank / Destination</span>
+                <span class="receipt-value" id="userReceiptBank">--</span>
+              </div>
+              <div class="receipt-row">
+                <span class="receipt-label">Description</span>
+                <span class="receipt-value" id="userReceiptDesc">--</span>
+              </div>
+              <div class="receipt-row">
+                <span class="receipt-label">Sender Name</span>
+                <span class="receipt-value" id="userReceiptSender">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div style="display:flex; gap:1rem; padding:1.5rem 2rem; background:#f8fafc; border-top:1px dashed #cbd5e1;">
+            <button id="userReceiptPdfBtn" class="btn" style="flex:1; background:#0f172a; color:white; display:flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.85rem; border-radius:8px; font-weight:700; font-size:0.85rem; cursor:pointer;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              SAVE AS PDF
             </button>
-            <div id="receiptContent">
-               <!-- Content populated by main.js -->
-            </div>
-            <div style="padding: 1.5rem; background: #f9f9f9; border-top: 1px dashed #ddd; display: flex; gap: 1rem;">
-               <button class="btn" style="flex: 1; background: #333; color: white;" onclick="window.print()">Download PDF</button>
-               <button class="btn" style="flex: 1; background: #eee; color: #333;" id="shareReceiptBtn">Share Receipt</button>
-            </div>
-         </div>
+            <button id="userReceiptCloseBtn" class="btn" style="flex:1; background:#f1f5f9; color:#334155; padding:0.85rem; border-radius:8px; font-weight:700; font-size:0.85rem; cursor:pointer;">CLOSE</button>
+          </div>
+
+        </div>
       </div>
 
       <!-- Edit User Profile Modal -->

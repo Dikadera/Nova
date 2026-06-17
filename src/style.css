@@ -740,14 +740,14 @@ h2 { font-size: 2rem; }
   }
 
   .admin-topbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-    padding: 1rem;
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 0.6rem 1rem !important;
+    gap: 0.5rem !important;
   }
-  
+
   .admin-topbar > div {
-    justify-content: space-between;
+    justify-content: initial !important;
   }
 
   .admin-content-area {
@@ -823,7 +823,12 @@ h2 { font-size: 2rem; }
 
   /* User Dashboard Mobile Overrides */
   .balance-display {
-    font-size: 2.2rem !important;
+    font-size: 1.9rem !important;
+  }
+
+  #userReceiptCard {
+    max-height: 88vh;
+    overflow-y: auto;
   }
 
   h1 { font-size: 2rem !important; }
@@ -1280,5 +1285,101 @@ select option {
   .cookie-banner-actions {
     width: 100%;
     justify-content: center;
+  }
+}
+
+/* ========================================
+   EXTRA MOBILE POLISH (≤ 480px)
+   ======================================== */
+@media (max-width: 480px) {
+  .admin-topbar h3 {
+    font-size: 1rem !important;
+  }
+
+  /* Hide session label on tiny screens */
+  .admin-topbar .text-success {
+    display: none !important;
+  }
+
+  /* Balance card: prevent right overflow */
+  .glass-panel {
+    overflow: hidden;
+  }
+
+  /* Transfer form: stack currency + amount */
+  #transferAmount {
+    width: 100% !important;
+  }
+
+  /* Receipt modal footer stacks on tiny screens */
+  #userReceiptModal > div > div:last-child {
+    flex-direction: column !important;
+  }
+
+  /* History tab toolbar: stack on very small screens */
+  #tab-statement .glass-panel > div:first-child {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  #txSearchInput {
+    width: 100% !important;
+  }
+  #txFilterType {
+    width: 100% !important;
+  }
+}
+
+/* ========================================
+   RECEIPT PDF / PRINT STYLES
+   Print is triggered by window.print() on
+   the SAVE AS PDF button. Everything is
+   hidden except the receipt card.
+   ======================================== */
+@media print {
+  /* Hide the entire app */
+  body > #app { display: none !important; }
+
+  /* Show only the receipt modal, full-page white */
+  #userReceiptModal {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding: 20px !important;
+    z-index: 99999 !important;
+  }
+
+  #userReceiptCard {
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 480px !important;
+    border-radius: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Hide action buttons in print */
+  #userReceiptPdfBtn,
+  #userReceiptCloseBtn {
+    display: none !important;
+  }
+
+  /* Fix amount gradient — gradients don't print; use solid colour */
+  #userReceiptAmount {
+    background: none !important;
+    -webkit-text-fill-color: #0284c7 !important;
+    color: #0284c7 !important;
+  }
+
+  .receipt-logo span {
+    background: none !important;
+    -webkit-text-fill-color: #0284c7 !important;
+    color: #0284c7 !important;
   }
 }
