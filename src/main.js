@@ -483,8 +483,26 @@ const router = async () => {
          return;
       }
    }
-   if (match.route.auth === 'unauthenticated' && currentUser) return navigateTo('/dashboard');
+   if (match.route.auth === 'unauthenticated' && currentUser) {
+      return navigateTo(globalProfileData?.role === 'admin' ? '/admin' : '/dashboard');
+   }
+   if (match.route.path === '/dashboard' && globalProfileData?.role === 'admin') {
+      return navigateTo('/admin');
+   }
    if (match.route.auth === 'admin' && (!globalProfileData || globalProfileData.role !== 'admin')) return navigateTo('/dashboard');
+
+   if (window.ratesInterval) {
+      clearInterval(window.ratesInterval);
+      window.ratesInterval = null;
+   }
+   if (window.testimonialInterval) {
+      clearInterval(window.testimonialInterval);
+      window.testimonialInterval = null;
+   }
+   if (window.activeGlowListener) {
+      window.removeEventListener('mousemove', window.activeGlowListener);
+      window.activeGlowListener = null;
+   }
 
    document.querySelector("#app").innerHTML = match.route.view(currentUser);
    attachEventListeners(match.route.path);
@@ -504,7 +522,7 @@ const router = async () => {
          var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
          var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
          s1.async=true;
-         s1.src='https://embed.tawk.to/6a04ef9bf651491c36a6d0ba/1johkfv8q';
+         s1.src='https://embed.tawk.to/6a3656c79b11ab1d453544f1/1jri45uvr';
          s1.charset='UTF-8';
          s1.setAttribute('crossorigin','*');
          if(s0 && s0.parentNode) s0.parentNode.insertBefore(s1,s0);
@@ -1185,7 +1203,8 @@ const attachEventListeners = async (path) => {
          }
          else {
             await incrementUserRewards(res.user.uid);
-            navigateTo('/dashboard');
+            const profile = await getUserProfile(res.user.uid);
+            navigateTo(profile?.role === 'admin' ? '/admin' : '/dashboard');
          }
       });
 
@@ -1207,7 +1226,8 @@ const attachEventListeners = async (path) => {
                 await sendEmail("template_f2e9dta", { to_email: email, to_name: name, account_number: "Generating..." });
             }
             await incrementUserRewards(res.user.uid);
-            navigateTo('/dashboard');
+            const profileAfterGoogleLogin = await getUserProfile(res.user.uid);
+            navigateTo(profileAfterGoogleLogin?.role === 'admin' ? '/admin' : '/dashboard');
          }
       });
    }
@@ -1258,8 +1278,365 @@ const attachEventListeners = async (path) => {
                 await sendEmail("template_f2e9dta", { to_email: email, to_name: name, account_number: "Generating..." });
             }
             await incrementUserRewards(res.user.uid);
-            navigateTo('/dashboard');
+            const profileAfterGoogleRegister = await getUserProfile(res.user.uid);
+            navigateTo(profileAfterGoogleRegister?.role === 'admin' ? '/admin' : '/dashboard');
          }
+      });
+   }
+
+   if (path === '/') {
+      // --- Phase 2: Dynamic Cursor follow glow ---
+      const glowBlob = document.getElementById('interactiveCursorGlow');
+      if (glowBlob) {
+         let hasFadedIn = false;
+         const trackGlow = (e) => {
+            if (!hasFadedIn) {
+               glowBlob.style.opacity = '1';
+               hasFadedIn = true;
+            }
+            glowBlob.style.left = `${e.clientX}px`;
+            glowBlob.style.top = `${e.clientY}px`;
+         };
+         window.addEventListener('mousemove', trackGlow);
+         
+         // Keep listener reference to cleanup if route changes
+         window.activeGlowListener = trackGlow;
+      }
+
+      // --- Phase 2: Scroll Reveal Intersection Observer ---
+      const revealElements = document.querySelectorAll('.reveal-on-scroll');
+      if (revealElements.length > 0) {
+         if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries, obs) => {
+               entries.forEach(entry => {
+                  if (entry.isIntersecting) {
+                     entry.target.classList.add('revealed');
+                     obs.unobserve(entry.target);
+                  }
+               });
+            }, {
+               threshold: 0.08,
+               rootMargin: '0px 0px -40px 0px'
+            });
+            revealElements.forEach(el => observer.observe(el));
+         } else {
+            revealElements.forEach(el => el.classList.add('revealed'));
+         }
+      }
+
+      // --- Phase 2: 3D Feature Cards Tilt ---
+      document.querySelectorAll('.interactive-feature-card').forEach(card => {
+         const inner = card.querySelector('.interactive-feature-card-inner');
+         if (inner) {
+            card.addEventListener('mousemove', (e) => {
+               const rect = card.getBoundingClientRect();
+               const x = e.clientX - rect.left;
+               const y = e.clientY - rect.top;
+               const w = rect.width;
+               const h = rect.height;
+               
+               const rY = ((x - w / 2) / (w / 2)) * 8; // Max 8 degrees
+               const rX = -((y - h / 2) / (h / 2)) * 8;
+               
+               inner.style.transform = `rotateY(${rY}deg) rotateX(${rX}deg)`;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+               inner.style.transform = 'rotateY(0deg) rotateX(0deg)';
+            });
+         }
+      });
+
+      // --- Wealth Simulator Elements ---
+      const initialSlider = document.getElementById('initialSlider');
+      const monthlySlider = document.getElementById('monthlySlider');
+      const yearsSlider = document.getElementById('yearsSlider');
+      
+      const initialValue = document.getElementById('initialValue');
+      const monthlyValue = document.getElementById('monthlyValue');
+      const yearsValue = document.getElementById('yearsValue');
+      
+      const simTotalBalance = document.getElementById('simTotalBalance');
+      const simPrincipalVal = document.getElementById('simPrincipalVal');
+      const simInterestVal = document.getElementById('simInterestVal');
+      
+      const simBarPrincipal = document.getElementById('simBarPrincipal');
+      const simBarInterest = document.getElementById('simBarInterest');
+      
+      // Tracking state for counting values
+      let currentValTotal = 10000;
+      let currentValPrincipal = 10000;
+      let currentValInterest = 0;
+      
+      const animateValue = (element, start, end, duration, prefix = '', isFloat = false) => {
+         if (!element) return;
+         if (start === end) {
+            element.textContent = prefix + Math.round(end).toLocaleString('en-US', isFloat ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : {});
+            return;
+         }
+         
+         const startTime = performance.now();
+         const step = (now) => {
+            const progress = Math.min((now - startTime) / duration, 1);
+            const easeProgress = progress * (2 - progress); // Ease Out Quad
+            const current = start + easeProgress * (end - start);
+            
+            element.textContent = prefix + Math.round(current).toLocaleString('en-US', isFloat ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : {});
+            
+            if (progress < 1) {
+               window.requestAnimationFrame(step);
+            }
+         };
+         window.requestAnimationFrame(step);
+      };
+      
+      const calculateWealth = (animate = true) => {
+         if (!initialSlider || !monthlySlider || !yearsSlider) return;
+         
+         const P = parseFloat(initialSlider.value);
+         const PMT = parseFloat(monthlySlider.value);
+         const t = parseInt(yearsSlider.value);
+         
+         const selectedPlan = document.querySelector('.plan-card-option.selected');
+         const rate = parseFloat(selectedPlan ? selectedPlan.dataset.rate : 4.5) / 100;
+         
+         const n = 12;
+         const totalMonths = n * t;
+         const monthlyRate = rate / n;
+         
+         let total = 0;
+         let principal = P + (PMT * totalMonths);
+         
+         if (monthlyRate === 0) {
+            total = principal;
+         } else {
+            const fvInitial = P * Math.pow(1 + monthlyRate, totalMonths);
+            const fvContributions = PMT * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate);
+            total = fvInitial + fvContributions;
+         }
+         
+         const interest = Math.max(0, total - principal);
+         
+         if (animate) {
+            animateValue(simTotalBalance, currentValTotal, total, 350, '$', true);
+            animateValue(simPrincipalVal, currentValPrincipal, principal, 350, '$', false);
+            animateValue(simInterestVal, currentValInterest, interest, 350, '$', false);
+         } else {
+            if (simTotalBalance) simTotalBalance.textContent = '$' + Math.round(total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (simPrincipalVal) simPrincipalVal.textContent = '$' + Math.round(principal).toLocaleString('en-US');
+            if (simInterestVal) simInterestVal.textContent = '$' + Math.round(interest).toLocaleString('en-US');
+         }
+         
+         // Update trackers
+         currentValTotal = total;
+         currentValPrincipal = principal;
+         currentValInterest = interest;
+         
+         const principalRatio = (principal / total) * 100;
+         const interestRatio = 100 - principalRatio;
+         
+         if (simBarPrincipal) simBarPrincipal.style.width = `${principalRatio}%`;
+         if (simBarInterest) simBarInterest.style.width = `${interestRatio}%`;
+      };
+      
+      if (initialSlider) {
+         initialSlider.addEventListener('input', () => {
+            if (initialValue) initialValue.textContent = '$' + parseInt(initialSlider.value).toLocaleString('en-US');
+            calculateWealth();
+         });
+      }
+      
+      if (monthlySlider) {
+         monthlySlider.addEventListener('input', () => {
+            if (monthlyValue) monthlyValue.textContent = '$' + parseInt(monthlySlider.value).toLocaleString('en-US');
+            calculateWealth();
+         });
+      }
+      
+      if (yearsSlider) {
+         yearsSlider.addEventListener('input', () => {
+            if (yearsValue) yearsValue.textContent = yearsSlider.value + (yearsSlider.value === '1' ? ' Year' : ' Years');
+            calculateWealth();
+         });
+      }
+      
+      document.querySelectorAll('.plan-card-option').forEach(card => {
+         card.addEventListener('click', () => {
+            document.querySelectorAll('.plan-card-option').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            calculateWealth();
+         });
+      });
+      
+      // Initialize Simulator without count animation on load
+      calculateWealth(false);
+      
+      // --- Card Customizer Logic ---
+      const customizerNameInput = document.getElementById('customizerNameInput');
+      const cardNameDisplay = document.getElementById('cardNameDisplay');
+      const previewCard = document.getElementById('previewCard');
+      const cardGlare = document.getElementById('cardGlare');
+      
+      if (customizerNameInput && cardNameDisplay) {
+         customizerNameInput.addEventListener('input', (e) => {
+            let val = e.target.value.trim().toUpperCase();
+            if (!val) val = "YOUR NAME";
+            cardNameDisplay.textContent = val;
+         });
+      }
+      
+      if (previewCard) {
+         previewCard.addEventListener('mousemove', (e) => {
+            const rect = previewCard.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const width = rect.width;
+            const height = rect.height;
+            
+            const rotateY = ((x - width / 2) / (width / 2)) * 12;
+            const rotateX = -((y - height / 2) / (height / 2)) * 12;
+            
+            previewCard.style.transform = `rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(1.02)`;
+            
+            if (cardGlare) {
+               const percentX = (x / width) * 100;
+               const percentY = (y / height) * 100;
+               cardGlare.style.backgroundPosition = `${percentX}% ${percentY}%`;
+            }
+         });
+         
+         previewCard.addEventListener('mouseleave', () => {
+            previewCard.style.transform = 'rotateY(0deg) rotateX(0deg) scale(1)';
+            if (cardGlare) {
+               cardGlare.style.backgroundPosition = '0% 0%';
+            }
+         });
+      }
+      
+      document.querySelectorAll('.style-selector-btn').forEach(btn => {
+         btn.addEventListener('click', () => {
+            document.querySelectorAll('.style-selector-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const theme = btn.dataset.theme;
+            if (previewCard) {
+               previewCard.className = `custom-card card-theme-${theme}`;
+            }
+         });
+      });
+      
+      // --- Live Exchange Rates Ticker Logic ---
+      const ratesData = {
+         eurusd: { val: 1.0842, precision: 4 },
+         gbpusd: { val: 1.2678, precision: 4 },
+         jpyusd: { val: 151.42, precision: 2 },
+         btcusd: { val: 67420.50, precision: 2 },
+         ethusd: { val: 3542.80, precision: 2 },
+         xauusd: { val: 2178.45, precision: 2 }
+      };
+      
+      if (window.ratesInterval) {
+         clearInterval(window.ratesInterval);
+      }
+      
+      window.ratesInterval = setInterval(() => {
+         const keys = Object.keys(ratesData);
+         const randomKey = keys[Math.floor(Math.random() * keys.length)];
+         const pair = ratesData[randomKey];
+         
+         const maxDev = (randomKey === 'btcusd' || randomKey === 'ethusd') ? 0.002 : 0.0005;
+         const changePct = (Math.random() * 2 - 1) * maxDev;
+         const delta = pair.val * changePct;
+         pair.val += delta;
+         
+         const direction = changePct >= 0 ? 'up' : 'down';
+         const formattedVal = pair.val.toLocaleString('en-US', { minimumFractionDigits: pair.precision, maximumFractionDigits: pair.precision });
+         
+         const valEl = document.getElementById(`val-${randomKey}`);
+         const chgEl = document.getElementById(`chg-${randomKey}`);
+         const cardEl = document.getElementById(`rate-${randomKey}`);
+         
+         if (valEl && chgEl && cardEl) {
+            valEl.textContent = formattedVal;
+            
+            const absPct = (Math.abs(changePct) * 100).toFixed(2);
+            const sign = direction === 'up' ? '+' : '-';
+            const chevron = direction === 'up' 
+               ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"></polyline></svg>`
+               : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+            
+            chgEl.className = `rate-change ${direction}`;
+            chgEl.innerHTML = `${chevron} <span>${sign}${absPct}%</span>`;
+            
+            const pulseClass = direction === 'up' ? 'rate-pulse-up' : 'rate-pulse-down';
+            cardEl.classList.remove('rate-pulse-up', 'rate-pulse-down');
+            void cardEl.offsetWidth; // Force Reflow
+            cardEl.classList.add(pulseClass);
+         }
+      }, 3000);
+      
+      // --- Testimonials Carousel ---
+      const dots = document.querySelectorAll('.carousel-dot');
+      const slides = document.querySelectorAll('.testimonial-slide');
+      let currentTestimonialIndex = 0;
+      
+      dots.forEach((dot, index) => {
+         dot.addEventListener('click', () => {
+            if (window.testimonialInterval) {
+               clearInterval(window.testimonialInterval);
+               window.testimonialInterval = null;
+            }
+            dots.forEach(d => d.classList.remove('active'));
+            slides.forEach(s => s.classList.remove('active'));
+            
+            dot.classList.add('active');
+            const targetSlide = document.querySelector(`.testimonial-slide[data-index="${index}"]`);
+            if (targetSlide) targetSlide.classList.add('active');
+            currentTestimonialIndex = index;
+         });
+      });
+      
+      if (window.testimonialInterval) {
+         clearInterval(window.testimonialInterval);
+      }
+      
+      if (slides.length > 0) {
+         window.testimonialInterval = setInterval(() => {
+            currentTestimonialIndex = (currentTestimonialIndex + 1) % slides.length;
+            const targetDot = document.querySelector(`.carousel-dot[data-index="${currentTestimonialIndex}"]`);
+            if (targetDot) {
+               dots.forEach(d => d.classList.remove('active'));
+               slides.forEach(s => s.classList.remove('active'));
+               targetDot.classList.add('active');
+               const targetSlide = document.querySelector(`.testimonial-slide[data-index="${currentTestimonialIndex}"]`);
+               if (targetSlide) targetSlide.classList.add('active');
+            }
+         }, 7000);
+      }
+      
+      // --- FAQs Accordion ---
+      document.querySelectorAll('.faq-trigger').forEach(trigger => {
+         trigger.addEventListener('click', () => {
+            const item = trigger.closest('.faq-item');
+            const content = item.querySelector('.faq-content');
+            const isOpen = item.classList.contains('open');
+            
+            document.querySelectorAll('.faq-item').forEach(otherItem => {
+               if (otherItem !== item) {
+                  otherItem.classList.remove('open');
+                  const otherContent = otherItem.querySelector('.faq-content');
+                  if (otherContent) otherContent.style.maxHeight = '0';
+               }
+            });
+            
+            if (isOpen) {
+               item.classList.remove('open');
+               if (content) content.style.maxHeight = '0';
+            } else {
+               item.classList.add('open');
+               if (content) content.style.maxHeight = content.scrollHeight + 'px';
+            }
+         });
       });
    }
 };
