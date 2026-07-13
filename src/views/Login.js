@@ -1,4 +1,35 @@
-export const LoginView = () => {
+export const LoginView = (currentUser) => {
+  if (currentUser && sessionStorage.getItem('otp_verified_user') !== currentUser.uid) {
+    return `
+      <div class="container flex-center" style="min-height: 100vh;">
+        <div class="glass-panel animate-fade-in" style="width: 100%; max-width: 400px; padding: 2.5rem;">
+          <div style="text-align: center; margin-bottom: 2rem;">
+            <div class="navbar-brand flex-center" style="margin-bottom: 1rem; justify-content: center;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <h2>Verify Your Identity</h2>
+            <p class="text-muted">Enter the 6-digit verification code sent to ${currentUser.email}</p>
+          </div>
+          
+          <form id="otpForm">
+            <div class="form-group">
+              <label class="form-label">Verification Code (OTP)</label>
+              <input type="text" id="otpInput" class="form-control" required placeholder="123456" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.5rem; font-weight: 700;">
+            </div>
+            <div id="otpErrorMessage" class="text-danger" style="margin-bottom: 1rem; font-size: 0.875rem; display: none;"></div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;" id="verifyOtpBtn">Verify & Log In</button>
+          </form>
+
+          <div style="text-align: center; margin-top: 1.5rem; font-size: 0.875rem;">
+            <p class="text-muted">Didn't receive the code? <a href="#" id="resendOtpBtn" style="color: var(--primary); text-decoration: none; font-weight: 600;">Resend OTP</a></p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div class="container flex-center" style="min-height: 100vh;">
       <div class="glass-panel animate-fade-in" style="width: 100%; max-width: 400px; padding: 2.5rem;">

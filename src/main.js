@@ -161,14 +161,42 @@ window.showNotification = showNotification;
 
 const sendEmail = async (templateId, params) => {
    try {
-      emailjs.init("2cMSe5uwOFplxXRys");
-      await emailjs.send("service_26i6l5c", templateId, params);
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      emailjs.init(publicKey);
+      await emailjs.send(serviceId, templateId, params);
       return { success: true };
    } catch (e) {
       console.error("Email Error:", e);
       return { error: e.text || e.message || "Network Error" };
    }
 };
+
+const sendLoginOtp = async (uid, email) => {
+   try {
+      const profileRes = await getUserProfile(uid);
+      const name = profileRes.data?.fullName || "Valued Member";
+      const otpRes = await resetUserVerification(uid);
+      if (otpRes.error) throw new Error(otpRes.error);
+      
+      const expiryTime = new Date(Date.now() + 10 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const templateId = import.meta.env.VITE_EMAILJS_OTP_TEMPLATE_ID;
+      await sendEmail(templateId, {
+         to_email: email,
+         to_name: name,
+         passcode: otpRes.verificationCode,
+         time: expiryTime
+      });
+      sessionStorage.setItem('otp_sent', 'true');
+      showNotification("A login verification code has been sent to your email.", "info");
+      return { success: true };
+   } catch (e) {
+      console.error("OTP Send Error:", e);
+      showNotification("Error sending verification code: " + e.message, "error");
+      return { error: e.message };
+   }
+};
+window.sendLoginOtp = sendLoginOtp;
 
 const openModal = (id) => {
    const el = document.getElementById(id);
@@ -474,8 +502,20 @@ const router = async () => {
 
    const potentialMatches = routes.map(route => ({ route, isMatch: location.pathname === route.path }));
    let match = potentialMatches.find(m => m.isMatch) || { route: routes[0], isMatch: true };
+   const isOtpVerified = currentUser && sessionStorage.getItem('otp_verified_user') === currentUser.uid;
+   console.log("[Router] Path:", location.pathname, "User ID:", currentUser?.uid, "Verified User in Session:", sessionStorage.getItem('otp_verified_user'), "isOtpVerified:", isOtpVerified);
 
-   if ((match.route.auth === 'authenticated' || match.route.auth === 'admin') && !currentUser) return navigateTo('/login');
+   if ((match.route.auth === 'authenticated' || match.route.auth === 'admin') && !currentUser) {
+      console.log("[Router] No user. Redirecting to /login");
+      return navigateTo('/login');
+   }
+
+   if (currentUser && !isOtpVerified) {
+      if (location.pathname !== '/login') {
+         console.log("[Router] Redirecting unverified user to /login from:", location.pathname);
+         return navigateTo('/login');
+      }
+   }
 
    if (currentUser) {
       if (!globalProfileData) {
@@ -484,7 +524,10 @@ const router = async () => {
       }
    }
    if (match.route.auth === 'unauthenticated' && currentUser) {
-      return navigateTo(globalProfileData?.role === 'admin' ? '/admin' : '/dashboard');
+      if (isOtpVerified) {
+         console.log("[Router] Verified user. Redirecting to dashboard/admin:", globalProfileData?.role);
+         return navigateTo(globalProfileData?.role === 'admin' ? '/admin' : '/dashboard');
+      }
    }
    if (match.route.path === '/dashboard' && globalProfileData?.role === 'admin') {
       return navigateTo('/admin');
@@ -780,7 +823,8 @@ const attachEventListeners = async (path) => {
          if (otpRes.error) return showNotification("OTP Error", "error");
 
          const expiryTime = new Date(Date.now() + 15 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-         await sendEmail("template_2h8yapk", {
+         const transferTemplateId = import.meta.env.VITE_EMAILJS_TRANSFER_TEMPLATE_ID;
+         await sendEmail(transferTemplateId, {
             to_email: currentUser.email,
             to_name: user.fullName,
             passcode: otpRes.code,
@@ -851,7 +895,11 @@ const attachEventListeners = async (path) => {
       document.getElementById('txFilterType')?.addEventListener('change', () => window.renderFullHistory?.());
 
       // Other listeners
-      document.getElementById('logoutBtn')?.addEventListener('click', () => logoutUser().then(() => window.location.reload()));
+      document.getElementById('logoutBtn')?.addEventListener('click', () => {
+         sessionStorage.removeItem('otp_verified_user');
+         sessionStorage.removeItem('otp_sent');
+         logoutUser().then(() => window.location.reload());
+      });
       document.getElementById('loanForm')?.addEventListener('submit', async (e) => {
          e.preventDefault();
          showNotification("Loan application submitted for review.", "info");
@@ -918,7 +966,11 @@ const attachEventListeners = async (path) => {
    if (path === '/admin') {
       // Modals
       document.getElementById('openCreateUserModal')?.addEventListener('click', () => openModal('createUserModal'));
-      document.getElementById('adminLogoutBtn')?.addEventListener('click', () => logoutUser().then(() => window.location.reload()));
+      document.getElementById('adminLogoutBtn')?.addEventListener('click', () => {
+         sessionStorage.removeItem('otp_verified_user');
+         sessionStorage.removeItem('otp_sent');
+         logoutUser().then(() => window.location.reload());
+      });
 
       // Forms
       document.getElementById('createUserForm')?.addEventListener('submit', async (e) => {
@@ -965,16 +1017,6 @@ const attachEventListeners = async (path) => {
 
                if (balance > 0) {
                   await adminUpdateBalance(res.user.uid, balance, 'credit', 'Opening Balance');
-               }
-
-               try {
-                  await sendEmail("template_f2e9dta", {
-                     to_email: email,
-                     to_name: name,
-                     account_number: profileRes.accountNumber || "Generating..."
-                  });
-               } catch (emailErr) {
-                  console.error("Welcome email failed to send: ", emailErr);
                }
 
                showNotification("Customer account created successfully!", "success");
@@ -1181,12 +1223,13 @@ const attachEventListeners = async (path) => {
          }).join('');
       });
 
-
-   }
+    }
 
    if (path === '/login') {
       document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
          e.preventDefault();
+         sessionStorage.removeItem('otp_verified_user');
+         sessionStorage.removeItem('otp_sent');
          
          const btn = document.getElementById('submitBtn');
          const err = document.getElementById('errorMessage');
@@ -1201,14 +1244,11 @@ const attachEventListeners = async (path) => {
             err.style.display = 'block'; 
             btn.disabled = false; 
          }
-         else {
-            await incrementUserRewards(res.user.uid);
-            const profile = await getUserProfile(res.user.uid);
-            navigateTo(profile?.role === 'admin' ? '/admin' : '/dashboard');
-         }
       });
 
       document.getElementById('googleLoginBtn')?.addEventListener('click', async () => {
+         sessionStorage.removeItem('otp_verified_user');
+         sessionStorage.removeItem('otp_sent');
          const btn = document.getElementById('googleLoginBtn');
          const err = document.getElementById('errorMessage');
          btn.disabled = true;
@@ -1219,15 +1259,39 @@ const attachEventListeners = async (path) => {
             btn.disabled = false;
          } else {
             const profile = await getUserProfile(res.user.uid);
-            if (!profile) {
+            if (!profile?.data) {
                 const name = res.user.displayName || "Google User";
                 const email = res.user.email;
                 await createUserProfile(res.user.uid, email, name);
-                await sendEmail("template_f2e9dta", { to_email: email, to_name: name, account_number: "Generating..." });
             }
-            await incrementUserRewards(res.user.uid);
-            const profileAfterGoogleLogin = await getUserProfile(res.user.uid);
-            navigateTo(profileAfterGoogleLogin?.role === 'admin' ? '/admin' : '/dashboard');
+         }
+      });
+
+      document.getElementById('otpForm')?.addEventListener('submit', async (e) => {
+         e.preventDefault();
+         const code = document.getElementById('otpInput').value;
+         const btn = document.getElementById('verifyOtpBtn');
+         const err = document.getElementById('otpErrorMessage');
+         btn.disabled = true;
+         
+         const res = await verifyUserOTP(currentUser.uid, code);
+         if (res.error) {
+            err.textContent = res.error;
+            err.style.display = 'block';
+            btn.disabled = false;
+         } else {
+            sessionStorage.setItem('otp_verified_user', currentUser.uid);
+            await incrementUserRewards(currentUser.uid);
+            const profile = await getUserProfile(currentUser.uid);
+            navigateTo(profile?.data?.role === 'admin' ? '/admin' : '/dashboard');
+         }
+      });
+
+      document.getElementById('resendOtpBtn')?.addEventListener('click', async (e) => {
+         e.preventDefault();
+         const res = await sendLoginOtp(currentUser.uid, currentUser.email);
+         if (!res.error) {
+            showNotification("Verification code resent successfully.", "success");
          }
       });
    }
@@ -1235,6 +1299,8 @@ const attachEventListeners = async (path) => {
    if (path === '/register') {
       document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
          e.preventDefault();
+         sessionStorage.removeItem('otp_verified_user');
+         sessionStorage.removeItem('otp_sent');
 
          const btn = document.getElementById('submitBtn');
          const err = document.getElementById('errorMessage');
@@ -1249,18 +1315,13 @@ const attachEventListeners = async (path) => {
          const res = await registerUser(email, pass);
          if (res.error) { err.textContent = res.error; err.style.display = 'block'; btn.disabled = false; }
          else {
-            const profileRes = await createUserProfile(res.user.uid, email, name);
-            // Send Welcome Email
-            await sendEmail("template_f2e9dta", {
-               to_email: email,
-               to_name: name,
-               account_number: profileRes.accountNumber || "Generating..."
-            });
-            navigateTo('/dashboard');
+            await createUserProfile(res.user.uid, email, name);
          }
       });
 
       document.getElementById('googleRegisterBtn')?.addEventListener('click', async () => {
+         sessionStorage.removeItem('otp_verified_user');
+         sessionStorage.removeItem('otp_sent');
          const btn = document.getElementById('googleRegisterBtn');
          const err = document.getElementById('errorMessage');
          btn.disabled = true;
@@ -1271,15 +1332,11 @@ const attachEventListeners = async (path) => {
             btn.disabled = false;
          } else {
             const profile = await getUserProfile(res.user.uid);
-            if (!profile) {
+            if (!profile?.data) {
                 const name = res.user.displayName || "Google User";
                 const email = res.user.email;
                 await createUserProfile(res.user.uid, email, name);
-                await sendEmail("template_f2e9dta", { to_email: email, to_name: name, account_number: "Generating..." });
             }
-            await incrementUserRewards(res.user.uid);
-            const profileAfterGoogleRegister = await getUserProfile(res.user.uid);
-            navigateTo(profileAfterGoogleRegister?.role === 'admin' ? '/admin' : '/dashboard');
          }
       });
    }
@@ -1654,6 +1711,9 @@ subscribeToAuthChanges(async (user) => {
    if (globalProfileUnsub) globalProfileUnsub();
 
    if (user) {
+      if (sessionStorage.getItem('otp_verified_user') !== user.uid && !sessionStorage.getItem('otp_sent')) {
+         sendLoginOtp(user.uid, user.email);
+      }
       router(); // Render loading state immediately
       globalProfileUnsub = subscribeToProfile(user.uid, (profile) => {
          if (profile.status === 'suspended') {
