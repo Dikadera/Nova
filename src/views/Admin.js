@@ -400,7 +400,15 @@ export const AdminView = () => {
             <input type="hidden" id="modalType">
             
             <div class="form-group">
-               <label class="form-label">Transaction Amount ($)</label>
+               <label class="form-label">Currency</label>
+               <select id="modalCurrency" class="form-control">
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+               </select>
+            </div>
+            <div class="form-group">
+               <label class="form-label">Transaction Amount</label>
                <input type="number" id="modalAmount" class="form-control" required min="0.01" step="0.01" placeholder="0.00">
             </div>
             <div class="form-group">
@@ -423,10 +431,18 @@ export const AdminView = () => {
                <label class="form-label">Description</label>
                <input type="text" id="editTxDescription" class="form-control">
             </div>
-            <div class="form-group">
-               <label class="form-label">Amount ($)</label>
-               <input type="number" id="editTxAmount" class="form-control" step="0.01">
-            </div>
+             <div class="form-group">
+                <label class="form-label">Currency</label>
+                <select id="editTxCurrency" class="form-control">
+                   <option value="USD">USD ($)</option>
+                   <option value="EUR">EUR (€)</option>
+                   <option value="GBP">GBP (£)</option>
+                </select>
+             </div>
+             <div class="form-group">
+                <label class="form-label">Amount</label>
+                <input type="number" id="editTxAmount" class="form-control" step="0.01">
+             </div>
             <div class="form-group">
                <label class="form-label">Status</label>
                <select id="editTxStatus" class="form-control">
@@ -498,10 +514,12 @@ export const AdminView = () => {
                <p id="stEmail" style="margin: 5px 0; color: #000;">--</p>
                <p id="stAccNum" style="font-family: monospace; color: #000;">--</p>
             </div>
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: right;">
-               <h3 style="font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 10px;">Available Balance</h3>
-               <p id="stBalance" style="font-size: 28px; font-weight: 800; margin: 0; color: #000;">$0.00</p>
-            </div>
+             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: right;">
+                <h3 style="font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 10px;">Available Balances</h3>
+                <p style="font-size: 16px; font-weight: 700; margin: 0; color: #000;">USD: <span id="stBalanceUsd">$0.00</span></p>
+                <p style="font-size: 16px; font-weight: 700; margin: 4px 0 0 0; color: #000;">EUR: <span id="stBalanceEur">€0.00</span></p>
+                <p style="font-size: 16px; font-weight: 700; margin: 4px 0 0 0; color: #000;">GBP: <span id="stBalanceGbp">£0.00</span></p>
+             </div>
          </div>
 
          <table style="width: 100%; border-collapse: collapse;">

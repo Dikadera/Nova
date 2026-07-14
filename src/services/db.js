@@ -28,6 +28,8 @@ export const createUserProfile = async (uid, email, fullName) => {
       email: email,
       fullName: fullName || "",
       balance: 0, 
+      balance_eur: 0,
+      balance_gbp: 0,
       accountNumber: accountNumber,
       role: "customer",
       status: "active",
@@ -159,16 +161,23 @@ export const verifyTransactionOTP = async (uid, code) => {
 };
 
 // Create a new transaction (transfer funds)
-export const createTransaction = async (uid, amount, recipientAccount, description, transferType = 'internal') => {
+export const createTransaction = async (uid, amount, recipientAccount, description, transferType = 'internal', currency = 'USD') => {
   try {
     const userRef = doc(db, "users", uid);
     const userSnap = await getDoc(userRef);
     
     if (!userSnap.exists()) throw new Error("User not found");
-    const currentBalance = parseFloat(userSnap.data().balance || 0);
+    const userData = userSnap.data();
+
+    // Map currency fields
+    let balanceField = "balance";
+    if (currency === "EUR") balanceField = "balance_eur";
+    if (currency === "GBP") balanceField = "balance_gbp";
+
+    const currentBalance = parseFloat(userData[balanceField] || 0);
     
     if (currentBalance < amount) {
-      throw new Error("Insufficient funds for this transaction.");
+      throw new Error(`Insufficient ${currency} funds for this transaction.`);
     }
 
     // Handle Internal Recipient (Only if internal)
@@ -183,28 +192,29 @@ export const createTransaction = async (uid, amount, recipientAccount, descripti
        
        const recipientDoc = querySnapshot.docs[0];
        const recipientRef = doc(db, "users", recipientDoc.id);
-       const recipientBalance = parseFloat(recipientDoc.data().balance || 0);
+       const recipientBalance = parseFloat(recipientDoc.data()[balanceField] || 0);
 
        // Credit recipient
        await updateDoc(recipientRef, {
-         balance: recipientBalance + amount
+         [balanceField]: recipientBalance + amount
        });
        
        // Log for recipient
        await addDoc(collection(db, "transactions"), {
          userId: recipientDoc.id,
          amount: amount,
-         senderAccount: userSnap.data().accountNumber,
+         senderAccount: userData.accountNumber,
          description: "Inward Transfer",
          status: "completed",
          type: "deposit",
+         currency: currency,
          timestamp: serverTimestamp()
        });
     }
 
     // Deduct from sender (Always)
     await updateDoc(userRef, {
-      balance: currentBalance - amount
+      [balanceField]: currentBalance - amount
     });
 
     // Log for sender
@@ -215,6 +225,7 @@ export const createTransaction = async (uid, amount, recipientAccount, descripti
       description: description || "Transfer Out",
       status: "completed",
       type: "transfer",
+      currency: currency,
       timestamp: serverTimestamp()
     });
 
@@ -298,17 +309,22 @@ export const deleteUserProfile = async (uid) => {
   }
 };
 
-export const adminUpdateBalance = async (uid, amount, type, customDescription) => {
+export const adminUpdateBalance = async (uid, amount, type, customDescription, currency = 'USD') => {
   try {
     const userRef = doc(db, "users", uid);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) throw new Error("User not found");
     
-    const currentBalance = userSnap.data().balance;
+    // Map currency fields
+    let balanceField = "balance";
+    if (currency === "EUR") balanceField = "balance_eur";
+    if (currency === "GBP") balanceField = "balance_gbp";
+
+    const currentBalance = parseFloat(userSnap.data()[balanceField] || 0);
     const numAmount = parseFloat(amount);
     const newBalance = type === 'credit' ? currentBalance + numAmount : currentBalance - numAmount;
     
-    await updateDoc(userRef, { balance: newBalance });
+    await updateDoc(userRef, { [balanceField]: newBalance });
     
     await addDoc(collection(db, "transactions"), {
       userId: uid,
@@ -317,6 +333,7 @@ export const adminUpdateBalance = async (uid, amount, type, customDescription) =
       description: customDescription || (type === 'credit' ? "Inward Deposit" : "Internal Service Fee"),
       status: "completed",
       type: "system_adjustment",
+      currency: currency,
       timestamp: serverTimestamp()
     });
     return { error: null };

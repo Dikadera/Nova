@@ -106,32 +106,39 @@ export const DashboardView = () => {
           <div id="restrictionAlertContainer"></div>
           <div id="profileAlertContainer"></div>
 
-          <!-- TAB: Dashboard Overview -->
           <div id="tab-dashboard" class="tab-content active">
-            <div class="responsive-grid-main">
+             <div class="responsive-grid-main">
               <div>
-                <div class="glass-panel" style="padding: 2.5rem; margin-bottom: 2rem; background: linear-gradient(135deg, rgba(20,26,40,0.8) 0%, rgba(0,210,255,0.1) 100%); position: relative; overflow: hidden;">
+                <div class="glass-panel" style="padding: 2.5rem; margin-bottom: 2rem; background: linear-gradient(135deg, rgba(20,26,40,0.8) 0%, rgba(0,210,255,0.05) 100%); position: relative; overflow: hidden;">
                   <!-- Background Pattern -->
                   <div style="position: absolute; top: -20%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(0,210,255,0.05) 0%, transparent 70%); pointer-events: none;"></div>
                   
-                  <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 2;">
-                      <div>
-                          <h3 class="text-muted" style="margin-bottom: 0.5rem; font-weight: 400;">Total Balance</h3>
-                          <h1 class="balance-display" style="margin-bottom: 0.5rem;">$<span class="sync-balance">0.00</span></h1>
-                          <div style="display: flex; gap: 1.5rem; align-items: center;">
-                             <div style="font-size: 0.85rem; color: var(--text-muted);">
-                                Available: <span style="color: var(--text-main); font-weight: 600;">$<span class="sync-balance">0.00</span></span>
-                             </div>
-                             <div style="font-size: 0.85rem; color: var(--primary); display: flex; align-items: center; gap: 0.4rem; background: rgba(0,210,255,0.1); padding: 0.2rem 0.6rem; border-radius: 4px;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                                <span>${user.novaPoints || 0} Nova Points</span>
-                             </div>
-                          </div>
+                  <div style="position: relative; z-index: 2;">
+                      <h3 class="text-muted" style="margin-bottom: 1.2rem; font-weight: 400; font-size: 1rem; letter-spacing: 0.5px;">AVAILABLE BALANCES</h3>
+                      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 1.2rem;">
+                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 12px; backdrop-filter: blur(5px);">
+                            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">USD Wallet</div>
+                            <div style="font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem;">$<span id="balance-usd">0.00</span></div>
+                         </div>
+                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 12px; backdrop-filter: blur(5px);">
+                            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">EUR Wallet</div>
+                            <div style="font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem;">€<span id="balance-eur">0.00</span></div>
+                         </div>
+                         <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 1rem; border-radius: 12px; backdrop-filter: blur(5px);">
+                            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">GBP Wallet</div>
+                            <div style="font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem;">£<span id="balance-gbp">0.00</span></div>
+                         </div>
                       </div>
-                      <div class="text-success" style="font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; background: rgba(34, 197, 94, 0.1); padding: 0.5rem 1rem; border-radius: 20px;">
-                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px var(--success);"></div> Active
-                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                         <div style="font-size: 0.85rem; color: var(--primary); display: flex; align-items: center; gap: 0.4rem; background: rgba(0,210,255,0.1); padding: 0.2rem 0.6rem; border-radius: 4px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            <span>${user.novaPoints || 0} Nova Points</span>
+                         </div>
+                         <div class="text-success" style="font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; background: rgba(34, 197, 94, 0.1); padding: 0.3rem 0.8rem; border-radius: 20px;">
+                           <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px var(--success);"></div> Active
+                         </div>
                   </div>
+                </div>
                 </div>
 
                 <!-- AI Insights / Rewards Widgets -->
@@ -209,15 +216,10 @@ export const DashboardView = () => {
         </div>
       </div>
       <input type="hidden" id="transferType" value="external">
-                   <div style="margin-bottom: 1rem;">
-                      <span class="text-muted" style="font-size: 0.8rem;">Total Balance</span>
-                      <div style="font-size: 1.5rem; font-weight: 700;">$<span class="sync-balance">0.00</span> USD</div>
-                   </div>
-                   <div>
-                      <span class="text-muted" style="font-size: 0.8rem;">Available Balance</span>
-                      <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">$<span class="sync-balance">0.00</span> USD</div>
-                   </div>
-                </div>
+      <div style="margin-bottom: 1rem;">
+         <span class="text-muted" style="font-size: 0.8rem;">Available Balance</span>
+         <div style="font-size: 1.8rem; font-weight: 700; color: var(--success);" id="transferAvailableBalanceDisplay">$0.00 USD</div>
+      </div>
 
               <form id="transferForm">
                 <div class="responsive-grid-2">
@@ -240,7 +242,6 @@ export const DashboardView = () => {
                             <option value="USD">USD</option>
                             <option value="EUR">EUR</option>
                             <option value="GBP">GBP</option>
-                            <option value="CAD">CAD</option>
                          </select>
                          <input type="number" id="transferAmount" class="form-control" required placeholder="0.00" min="1" step="0.01">
                       </div>
@@ -645,10 +646,12 @@ export const DashboardView = () => {
                <p id="stEmail" style="margin: 5px 0; color: #000;">--</p>
                <p id="stAccNum" style="font-family: monospace; color: #000;">--</p>
             </div>
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: right;">
-               <h3 style="font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 10px;">Available Balance</h3>
-               <p id="stBalance" style="font-size: 28px; font-weight: 800; margin: 0; color: #000;">$0.00</p>
-            </div>
+             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: right;">
+                <h3 style="font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 10px;">Available Balances</h3>
+                <p style="font-size: 16px; font-weight: 700; margin: 0; color: #000;">USD: <span id="stBalanceUsd">$0.00</span></p>
+                <p style="font-size: 16px; font-weight: 700; margin: 4px 0 0 0; color: #000;">EUR: <span id="stBalanceEur">€0.00</span></p>
+                <p style="font-size: 16px; font-weight: 700; margin: 4px 0 0 0; color: #000;">GBP: <span id="stBalanceGbp">£0.00</span></p>
+             </div>
          </div>
 
          <table style="width: 100%; border-collapse: collapse;">

@@ -159,6 +159,17 @@ const showNotification = (message, type = 'success') => {
 };
 window.showNotification = showNotification;
 
+const formatCurrency = (amount, currency = 'USD') => {
+   const symbolMap = {
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£'
+   };
+   const symbol = symbolMap[currency] || '$';
+   return `${symbol}${parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+window.formatCurrency = formatCurrency;
+
 const sendEmail = async (templateId, params) => {
    try {
       const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
@@ -338,6 +349,7 @@ window.handleEditTx = (txId) => {
    if (!tx) return;
    document.getElementById('editTxId').value = txId;
    document.getElementById('editTxDescription').value = tx.description || '';
+   document.getElementById('editTxCurrency').value = tx.currency || 'USD';
    document.getElementById('editTxAmount').value = Math.abs(tx.amount || 0);
    document.getElementById('editTxStatus').value = tx.status || 'completed';
    openModal('editTxModal');
@@ -350,7 +362,7 @@ window.handleViewReceipt = (txId) => {
 
    document.getElementById('receiptStatus').textContent = (tx.status || 'COMPLETED').toUpperCase();
    document.getElementById('receiptStatus').className = `receipt-status-badge ${tx.status || 'completed'}`;
-   document.getElementById('receiptAmount').textContent = `$${Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+   document.getElementById('receiptAmount').textContent = formatCurrency(Math.abs(tx.amount), tx.currency);
    document.getElementById('receiptDate').textContent = tx.timestamp?.toDate().toLocaleString() || '--';
    document.getElementById('receiptRef').textContent = txId.toUpperCase();
    document.getElementById('receiptDesc').textContent = tx.description || 'System Transaction';
@@ -386,7 +398,14 @@ const populateStatement = (user, transactions) => {
    document.getElementById('stName').textContent = user.fullName;
    document.getElementById('stEmail').textContent = user.email;
    document.getElementById('stAccNum').textContent = user.accountNumber;
-   document.getElementById('stBalance').textContent = `$${parseFloat(user.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+   
+   const usdEl = document.getElementById('stBalanceUsd');
+   const eurEl = document.getElementById('stBalanceEur');
+   const gbpEl = document.getElementById('stBalanceGbp');
+   if (usdEl) usdEl.textContent = formatCurrency(user.balance, 'USD');
+   if (eurEl) eurEl.textContent = formatCurrency(user.balance_eur || 0, 'EUR');
+   if (gbpEl) gbpEl.textContent = formatCurrency(user.balance_gbp || 0, 'GBP');
+
    document.getElementById('stPeriod').textContent = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
    const body = document.getElementById('stBody');
@@ -394,7 +413,7 @@ const populateStatement = (user, transactions) => {
       <tr>
          <td style="padding:10px; border-bottom:1px solid #eee;">${tx.timestamp?.toDate().toLocaleDateString()}</td>
          <td style="padding:10px; border-bottom:1px solid #eee;">${tx.description}</td>
-         <td style="padding:10px; border-bottom:1px solid #eee; text-align:right; font-weight:700;">${tx.amount < 0 ? '-' : '+'}$${Math.abs(tx.amount).toFixed(2)}</td>
+         <td style="padding:10px; border-bottom:1px solid #eee; text-align:right; font-weight:700;">${tx.amount < 0 ? '-' : '+'}${formatCurrency(Math.abs(tx.amount), tx.currency)}</td>
          <td style="padding:10px; border-bottom:1px solid #eee; text-align:right; text-transform:uppercase; font-size:10px;">${tx.status || 'completed'}</td>
       </tr>
    `).join('');
@@ -613,10 +632,9 @@ const attachEventListeners = async (path) => {
          }
       }
 
-      // Receipt Modal Helper
       window.showReceiptModal = (tx, shouldReloadOnClose = false) => {
          const isCredit = tx.amount > 0;
-         const amountFmt = (isCredit ? '+' : '-') + '$' + Math.abs(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+         const amountFmt = (isCredit ? '+' : '-') + formatCurrency(Math.abs(tx.amount), tx.currency);
          
          let dateStr = '--';
          if (tx.timestamp) {
@@ -718,9 +736,32 @@ const attachEventListeners = async (path) => {
          }
       };
 
-      // Subscriptions
       profileUnsubscribe = subscribeToProfile(currentUser.uid, (data) => {
-         document.querySelectorAll('.sync-balance').forEach(el => el.textContent = parseFloat(data.balance).toLocaleString('en-US', { minimumFractionDigits: 2 }));
+         const usdEl = document.getElementById('balance-usd');
+         const eurEl = document.getElementById('balance-eur');
+         const gbpEl = document.getElementById('balance-gbp');
+         if (usdEl) usdEl.textContent = parseFloat(data.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+         if (eurEl) eurEl.textContent = parseFloat(data.balance_eur || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+         if (gbpEl) gbpEl.textContent = parseFloat(data.balance_gbp || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+         const updateTransferBalance = () => {
+            const selectVal = document.getElementById('transferCurrency')?.value || 'USD';
+            const balDisplay = document.getElementById('transferAvailableBalanceDisplay');
+            if (balDisplay) {
+               let avail = data.balance || 0;
+               if (selectVal === 'EUR') avail = data.balance_eur || 0;
+               if (selectVal === 'GBP') avail = data.balance_gbp || 0;
+               balDisplay.textContent = formatCurrency(avail, selectVal) + ' ' + selectVal;
+            }
+         };
+         updateTransferBalance();
+         
+         const selectCur = document.getElementById('transferCurrency');
+         if (selectCur && !selectCur.dataset.listenerAttached) {
+            selectCur.addEventListener('change', updateTransferBalance);
+            selectCur.dataset.listenerAttached = 'true';
+         }
+
          populateProfileView(data);
          renderMastercard(data);
       });
@@ -747,7 +788,7 @@ const attachEventListeners = async (path) => {
                         <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${tx.description || 'Transaction'}</div>
                         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.15rem;">${dateStr}</div>
                      </div>
-                     <div style="font-weight:700; font-size:0.95rem; flex-shrink:0; color:${isCredit ? 'var(--success)' : 'var(--danger)'};"> ${isCredit ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}</div>
+                     <div style="font-weight:700; font-size:0.95rem; flex-shrink:0; color:${isCredit ? 'var(--success)' : 'var(--danger)'};"> ${isCredit ? '+' : '-'}${formatCurrency(Math.abs(tx.amount), tx.currency)}</div>
                   </div>`;
                }).join('');
             }
@@ -783,7 +824,7 @@ const attachEventListeners = async (path) => {
                      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">${dateStr}</div>
                   </div>
                   <span style="font-size:0.65rem; font-weight:700; color:${statusColor}; background:${isCredit ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)'}; padding:0.2rem 0.55rem; border-radius:20px; text-transform:uppercase; flex-shrink:0;">${tx.status || 'completed'}</span>
-                  <div style="font-weight:700; font-size:0.95rem; flex-shrink:0; text-align:right; min-width:80px; color:${isCredit ? 'var(--success)' : 'var(--danger)'};"> ${isCredit ? '+' : '-'}$${Math.abs(tx.amount).toFixed(2)}</div>
+                  <div style="font-weight:700; font-size:0.95rem; flex-shrink:0; text-align:right; min-width:80px; color:${isCredit ? 'var(--success)' : 'var(--danger)'};"> ${isCredit ? '+' : '-'}${formatCurrency(Math.abs(tx.amount), tx.currency)}</div>
                </div>`;
             }).join('');
          };
@@ -835,7 +876,7 @@ const attachEventListeners = async (path) => {
 
          openModal('transferOtpModal');
          btn.disabled = false;
-         window.pendingTransfer = { uid: currentUser.uid, amount, account, type, bank, description: type === 'external' ? `External Transfer to ${bank}` : `Internal Transfer to Nova Acc: ${account}` };
+         window.pendingTransfer = { uid: currentUser.uid, amount, account, type, bank, currency: document.getElementById('transferCurrency').value, description: type === 'external' ? `External Transfer to ${bank}` : `Internal Transfer to Nova Acc: ${account}` };
       });
 
       document.getElementById('transferOtpForm')?.addEventListener('submit', async (e) => {
@@ -844,7 +885,7 @@ const attachEventListeners = async (path) => {
          if (res.error) {
             showNotification(res.error, "error");
          } else {
-            const txRes = await createTransaction(window.pendingTransfer.uid, window.pendingTransfer.amount, window.pendingTransfer.account, window.pendingTransfer.description, window.pendingTransfer.type);
+            const txRes = await createTransaction(window.pendingTransfer.uid, window.pendingTransfer.amount, window.pendingTransfer.account, window.pendingTransfer.description, window.pendingTransfer.type, window.pendingTransfer.currency);
             if (txRes.error) {
                showNotification(txRes.error, "error");
             } else {
@@ -864,6 +905,7 @@ const attachEventListeners = async (path) => {
                   recipientAccount: pt.account,
                   bank: pt.bank,
                   description: pt.description,
+                  currency: pt.currency,
                   status: 'completed'
                }, true);
 
@@ -1058,8 +1100,9 @@ const attachEventListeners = async (path) => {
          const amount = document.getElementById('modalAmount').value;
          const type = document.getElementById('modalType').value;
          const desc = document.getElementById('modalDescription').value;
+         const currency = document.getElementById('modalCurrency').value;
 
-         const res = await adminUpdateBalance(uid, amount, type, desc);
+         const res = await adminUpdateBalance(uid, amount, type, desc, currency);
          if (res.error) showNotification(res.error, "error");
          else {
             showNotification(`Account ${type}ed successfully!`, "success");
@@ -1071,6 +1114,7 @@ const attachEventListeners = async (path) => {
          const id = document.getElementById('editTxId').value;
          const data = {
             description: document.getElementById('editTxDescription').value,
+            currency: document.getElementById('editTxCurrency').value,
             amount: parseFloat(document.getElementById('editTxAmount').value),
             status: document.getElementById('editTxStatus').value
          };
@@ -1134,7 +1178,13 @@ const attachEventListeners = async (path) => {
                </td>
                <td data-label="EMAIL" style="font-size:0.8rem; color:var(--text-muted);">${u.email}</td>
                <td data-label="STATUS"><span class="status-badge ${u.status === 'active' ? 'status-successful' : 'status-pending'}" style="font-size:0.65rem;">${(u.status || 'active').toUpperCase()}</span></td>
-               <td data-label="BALANCE" style="font-weight:700;">$${parseFloat(u.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+               <td data-label="BALANCE">
+                  <div style="font-size:0.75rem; font-weight:700; display:flex; flex-direction:column; gap:0.15rem; color: #fff;">
+                     <span>USD: $${parseFloat(u.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                     <span>EUR: €${parseFloat(u.balance_eur || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                     <span>GBP: £${parseFloat(u.balance_gbp || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+               </td>
                <td data-label="ACTIONS">
                   <div style="display:flex; gap:0.5rem; flex-wrap:wrap; min-width:200px;">
                      <button class="btn btn-primary" style="padding:0.4rem 0.8rem; font-size:0.7rem;" onclick="window.handleAdminManage('${u.id}')">MANAGE</button>
@@ -1163,7 +1213,7 @@ const attachEventListeners = async (path) => {
                      ${user ? `<div style="font-size:0.65rem; color:var(--primary); opacity:0.7; font-family:monospace;">ACC: ${user.accountNumber}</div>` : ''}
                   </td>
                   <td data-label="DESCRIPTION" style="font-size:0.8rem;">${tx.description}</td>
-                  <td data-label="AMOUNT" style="font-weight:700; color:${tx.amount < 0 ? 'var(--danger)' : 'var(--success)'};">${tx.amount < 0 ? '-' : '+'}$${Math.abs(tx.amount).toFixed(2)}</td>
+                  <td data-label="AMOUNT" style="font-weight:700; color:${tx.amount < 0 ? 'var(--danger)' : 'var(--success)'};">${tx.amount < 0 ? '-' : '+'}${formatCurrency(Math.abs(tx.amount), tx.currency)}</td>
                   <td data-label="STATUS"><span class="status-badge ${tx.status || 'completed'}" style="font-size:0.65rem;">${(tx.status || 'completed').toUpperCase()}</span></td>
                   <td data-label="ACTIONS">
                      <div style="display:flex; gap:0.5rem;">
