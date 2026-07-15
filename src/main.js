@@ -186,6 +186,11 @@ const sendEmail = async (templateId, params) => {
 const sendLoginOtp = async (uid, email) => {
    try {
       const profileRes = await getUserProfile(uid);
+      if (profileRes.data?.role === 'admin') {
+         sessionStorage.setItem('otp_verified_user', uid);
+         if (window.router) window.router();
+         return { success: true };
+      }
       const name = profileRes.data?.fullName || "Valued Member";
       const otpRes = await resetUserVerification(uid);
       if (otpRes.error) throw new Error(otpRes.error);
@@ -1766,6 +1771,9 @@ subscribeToAuthChanges(async (user) => {
       }
       router(); // Render loading state immediately
       globalProfileUnsub = subscribeToProfile(user.uid, (profile) => {
+         if (profile.role === 'admin') {
+            sessionStorage.setItem('otp_verified_user', user.uid);
+         }
          if (profile.status === 'suspended') {
             logoutUser();
             
